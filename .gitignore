@@ -1,0 +1,47 @@
+# Build
+target/
+build/
+*.class
+*.jar
+*.war
+
+# Maven
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.mvn/
+
+# Java
+*.log
+hs_err_pid*
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Docker
+docker-compose.override.yml
+
+# Env
+.env
+.env.*
+!.env.example

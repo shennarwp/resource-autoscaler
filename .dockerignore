@@ -1,0 +1,16 @@
+**/node_modules
+**/target
+**/.git
+**/.idea
+**/.vscode
+**/.DS_Store
+
+frontend/
+!.mvn/wrapper/maven-wrapper.jar
+
+*.md
+docker-compose*.yml
+Dockerfile
+.gitignore
+.gitattributes
+.env*

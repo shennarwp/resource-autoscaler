@@ -1,0 +1,10 @@
+app:
+  azure:
+    subscription-id: ${AZURE_SUBSCRIPTION_ID}
+    tenant-id: ${AZURE_TENANT_ID}
+    resource-group: ${AZURE_RESOURCE_GROUP:finops-platform}
+    log-analytics-workspace-id: ${AZURE_LOG_ANALYTICS_WORKSPACE_ID}
+
+logging:
+  level:
+    com.resourceautoscaler: INFO
