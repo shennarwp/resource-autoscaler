@@ -17,7 +17,7 @@ export function useMetrics(resourceId: string | null, days = 30) {
       .finally(() => setLoading(false));
   }, [resourceId, days]);
 
-  return { metrics, loading, error };
+  return { metrics, loading: loading && !metrics, error };
 }
 
 export function useCostAnalysis() {
@@ -34,10 +34,10 @@ export function useCostAnalysis() {
       .finally(() => setLoading(false));
   }, []);
 
-  return { analysis, loading, error };
+  return { analysis, loading: loading && !analysis, error };
 }
 
-export function useRecommendations(resourceId: string | null) {
+export function useRecommendations(resourceId: string | null, days = 30) {
   const [recommendations, setRecommendations] = useState<ScalingRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +46,11 @@ export function useRecommendations(resourceId: string | null) {
     if (!resourceId) return;
     setLoading(true);
     recommendationsApi
-      .getRecommendations(resourceId)
+      .getRecommendations(resourceId, days)
       .then(setRecommendations)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [resourceId]);
+  }, [resourceId, days]);
 
-  return { recommendations, loading, error };
+  return { recommendations, loading: loading && recommendations.length === 0, error };
 }

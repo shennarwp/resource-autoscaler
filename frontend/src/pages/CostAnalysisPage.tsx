@@ -1,6 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useCostAnalysis } from '../hooks/useApi';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const tooltipStyle = {
+  backgroundColor: 'var(--bg-card)',
+  border: '1px solid var(--border)',
+  borderRadius: '6px',
+  color: 'var(--text-primary)',
+};
 
 export default function CostAnalysisPage() {
   const { analysis, loading, error } = useCostAnalysis();
@@ -29,7 +36,7 @@ export default function CostAnalysisPage() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(value) => `$${Number(value).toFixed(2)}`} />
             <Bar dataKey="current" fill="#ef4444" name="Current ($)" />
             <Bar dataKey="optimized" fill="#10b981" name="Optimized ($)" />
           </BarChart>

@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMetrics, useRecommendations } from '../hooks/useApi';
 import {
@@ -6,26 +7,112 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 
+const TIME_RANGES = [
+  { label: '24h', days: 1 },
+  { label: '1w', days: 7 },
+  { label: '4w', days: 28 },
+  { label: '1m', days: 30 },
+  { label: '3m', days: 90 },
+];
+
+const RANGE_LABELS: Record<number, string> = {
+  1: '24 hours',
+  7: '1 week',
+  28: '4 weeks',
+  30: '1 month',
+  90: '3 months',
+};
+
+const tooltipStyle = {
+  backgroundColor: 'var(--bg-card)',
+  border: '1px solid var(--border)',
+  borderRadius: '6px',
+  color: 'var(--text-primary)',
+};
+
+function CustomTick({ x, y, payload }: any) {
+  const label = payload.value;
+  const parts = label.split('|');
+  const isMiddle = parts.length > 1;
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {isMiddle ? (
+        <>
+          <text x={0} y={0} dy={16} textAnchor="middle" fill="var(--text-muted)" fontSize={11}>
+            {parts[1]}
+          </text>
+          <text x={0} y={0} dy={28} textAnchor="middle" fill="var(--text-muted)" fontSize={9}>
+            {parts[0]}
+          </text>
+        </>
+      ) : (
+        <text x={0} y={0} dy={16} textAnchor="middle" fill="var(--text-muted)" fontSize={11}>
+          {parts[0]}
+        </text>
+      )}
+    </g>
+  );
+}
+
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
-  const { metrics, loading: metricsLoading } = useMetrics(resourceId ?? null);
-  const { recommendations, loading: recsLoading } = useRecommendations(resourceId ?? null);
+  const [selectedDays, setSelectedDays] = useState(30);
+  const { metrics, loading: metricsLoading } = useMetrics(resourceId ?? null, selectedDays);
+  const { recommendations } = useRecommendations(resourceId ?? null, selectedDays);
 
-  if (metricsLoading || recsLoading) return <div className="loading">Loading metrics...</div>;
+  const rangeLabel = RANGE_LABELS[selectedDays] || `${selectedDays} days`;
+
+  const chartData = useMemo(() => {
+    if (!metrics) return [];
+    const points = metrics.dataPoints.map((p) => ({
+      timestamp: p.timestamp,
+      cpu: Number(p.cpuUtilization.toFixed(2)),
+      memory: Number(p.memoryUtilization.toFixed(2)),
+      requests: p.activeRequestCount,
+    }));
+
+    const dayGroups: Record<string, number[]> = {};
+    points.forEach((p, i) => {
+      const day = format(new Date(p.timestamp), 'yyyy-MM-dd');
+      if (!dayGroups[day]) dayGroups[day] = [];
+      dayGroups[day].push(i);
+    });
+
+    return points.map((p, i) => {
+      const day = format(new Date(p.timestamp), 'yyyy-MM-dd');
+      const indices = dayGroups[day];
+      const middleIndex = indices[Math.floor(indices.length / 2)];
+      const time = format(new Date(p.timestamp), 'HH:mm');
+      const date = format(new Date(p.timestamp), 'MMM dd');
+
+      return {
+        ...p,
+        tickLabel: i === middleIndex ? `${time}|${date}` : time,
+      };
+    });
+  }, [metrics]);
+
+  if (metricsLoading && !metrics) return <div className="loading">Loading metrics...</div>;
   if (!metrics) return <div className="error">Resource not found</div>;
-
-  const chartData = metrics.dataPoints.map((p) => ({
-    time: format(new Date(p.timestamp), 'MMM dd HH:mm'),
-    cpu: Number(p.cpuUtilization.toFixed(2)),
-    memory: Number(p.memoryUtilization.toFixed(2)),
-    requests: p.activeRequestCount,
-  }));
 
   return (
     <div className="page">
       <Link to="/" className="back-link">&larr; Back to Dashboard</Link>
       <h1>{metrics.resourceName}</h1>
       <p className="subtitle">{metrics.resourceId} &mdash; {metrics.resourceType}</p>
+
+      <div className="time-range-selector">
+        {TIME_RANGES.map((range) => (
+          <button
+            key={range.days}
+            className={`time-range-btn ${selectedDays === range.days ? 'active' : ''}`}
+            onClick={() => setSelectedDays(range.days)}
+          >
+            {range.label}
+          </button>
+        ))}
+      </div>
 
       <div className="stats-row">
         <div className="stat-box">
@@ -47,30 +134,30 @@ export default function ResourceDetailPage() {
       </div>
 
       <div className="chart-section">
-        <h2>CPU Utilization (30 days)</h2>
+        <h2>CPU Utilization ({rangeLabel})</h2>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+            <XAxis dataKey="tickLabel" tick={<CustomTick />} />
             <YAxis domain={[0, 100]} />
-            <Tooltip />
-            <ReferenceLine y={65} stroke="#f59e0b" strokeDasharray="3 3" label="Peak Target" />
-            <ReferenceLine y={10} stroke="#10b981" strokeDasharray="3 3" label="Off-Peak Target" />
-            <Area type="monotone" dataKey="cpu" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <ReferenceLine y={65} stroke="var(--warning)" strokeDasharray="3 3" label="Peak Target" />
+            <ReferenceLine y={10} stroke="var(--success)" strokeDasharray="3 3" label="Off-Peak Target" />
+            <Area type="monotone" dataKey="cpu" stroke="var(--cpu-color)" fill="var(--cpu-color)" fillOpacity={0.3} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
       <div className="chart-section">
-        <h2>Memory Utilization (30 days)</h2>
+        <h2>Memory Utilization ({rangeLabel})</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+            <XAxis dataKey="tickLabel" tick={<CustomTick />} />
             <YAxis domain={[0, 100]} />
-            <Tooltip />
+            <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Line type="monotone" dataKey="memory" stroke="#8b5cf6" name="Memory %" />
+            <Line type="monotone" dataKey="memory" stroke="var(--memory-color)" name="Memory %" />
           </LineChart>
         </ResponsiveContainer>
       </div>
