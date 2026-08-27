@@ -49,7 +49,7 @@ public class MetricsCollectionService {
             return new ResourceMetrics.AggregatedStats(0, 0, 0, 0, 0, 0, 0, 0);
         }
 
-        double cpuSum = 0, cpuMax = Double.MIN_VALUE, cpuMax2 = Double.MIN_VALUE;
+        double cpuSum = 0, cpuMax = Double.MIN_VALUE, cpuMin = Double.MAX_VALUE;
         double memSum = 0, memMax = Double.MIN_VALUE;
         double peakSum = 0, peakCount = 0;
         double offPeakSum = 0, offPeakCount = 0;
@@ -58,8 +58,9 @@ public class MetricsCollectionService {
         for (MetricPoint p : dataPoints) {
             cpuSum += p.cpuUtilization();
             cpuMax = Math.max(cpuMax, p.cpuUtilization());
-            cpuMax2 = Math.max(cpuMax2, p.memoryUtilization());
-            memSum += Math.max(memSum, p.memoryUtilization());
+            cpuMin = Math.min(cpuMin, p.cpuUtilization());
+            memSum += p.memoryUtilization();
+            memMax = Math.max(memMax, p.memoryUtilization());
             reqSum += p.activeRequestCount();
 
             java.time.ZonedDateTime zdt = p.timestamp().atZone(java.time.ZoneId.of("UTC"));
@@ -81,9 +82,9 @@ public class MetricsCollectionService {
         return new ResourceMetrics.AggregatedStats(
             cpuSum / size,
             cpuMax,
-            cpuMax2,
+            cpuMin,
             memSum / size,
-            memSum,
+            memMax,
             reqSum / size,
             peakCount > 0 ? peakSum / peakCount : 0,
             offPeakCount > 0 ? offPeakSum / offPeakCount : 0

@@ -30,7 +30,7 @@ public class MockMetricsRepository implements MetricsRepository {
 
     @Override
     public List<MetricPoint> getCpuUtilization(String resourceId, Duration timeRange) {
-        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 65.0, 5.0, 15.0);
+        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 75.0, 5.0, 15.0);
     }
 
     @Override
