@@ -30,6 +30,9 @@ public class MockMetricsRepository implements MetricsRepository {
 
     @Override
     public List<MetricPoint> getCpuUtilization(String resourceId, Duration timeRange) {
+        if ("appservice-api-gateway".equals(resourceId)) {
+            return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 40.0, 40.0, 5.0);
+        }
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 75.0, 5.0, 15.0);
     }
 
@@ -88,14 +91,16 @@ public class MockMetricsRepository implements MetricsRepository {
         List<MetricPoint> points = new ArrayList<>();
 
         long totalSeconds = timeRange.getSeconds();
-        long interval = Math.max(totalSeconds / 48, 3600);
+        long interval = 3600;
 
         for (Instant t = start; !t.isAfter(end); t = t.plusSeconds(interval)) {
             java.time.ZonedDateTime zdt = t.atZone(java.time.ZoneId.of("UTC"));
             int hour = zdt.getHour();
 
+            java.time.DayOfWeek dow = zdt.getDayOfWeek();
+            boolean isWeekend = dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY;
             double base;
-            if (hour >= peakStartHour && hour <= peakEndHour) {
+            if (!isWeekend && hour >= peakStartHour && hour <= peakEndHour) {
                 base = peakBase;
             } else {
                 base = offPeakBase;

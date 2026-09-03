@@ -43,8 +43,8 @@ export interface ScalingRecommendation {
 
 export interface RecommendationResponse {
   recommendation: ScalingRecommendation;
-  kedaYaml: string;
-  terraformHcl: string;
+  kedaYaml?: string;
+  terraformHcl?: string;
 }
 
 export interface CostAnalysis {

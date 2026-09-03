@@ -7,8 +7,9 @@
   --text-secondary: #475569;
   --text-muted: #94a3b8;
   --border: #e2e8f0;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  --accent: #374151;
+  --accent-hover: #1f2937;
+  --accent-text: #ffffff;
   --success: #22c55e;
   --warning: #eab308;
   --danger: #ef4444;
@@ -26,8 +27,9 @@
     --text-secondary: #a0a0a0;
     --text-muted: #666666;
     --border: #333333;
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
+    --accent: #d1d5db;
+    --accent-hover: #e5e7eb;
+    --accent-text: #111827;
     --success: #22c55e;
     --warning: #eab308;
     --danger: #ef4444;
@@ -202,9 +204,9 @@ h4 {
 
 /* Resource Grid */
 .resource-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .resource-card {
@@ -283,7 +285,7 @@ h4 {
 
 .time-range-btn.active {
   background: var(--accent);
-  color: white;
+  color: var(--accent-text);
   border-color: var(--accent);
 }
 
@@ -360,7 +362,7 @@ h4 {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  color: var(--accent-text);
 }
 
 .btn-primary:hover {
@@ -381,7 +383,7 @@ h4 {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   background: var(--accent);
-  color: white;
+  color: var(--accent-text);
 }
 
 .btn-copy {
@@ -419,7 +421,7 @@ h4 {
 
 .tab.active {
   background: var(--accent);
-  color: white;
+  color: var(--accent-text);
   border-color: var(--accent);
 }
 
