@@ -28,27 +28,38 @@ const tooltipStyle = {
   border: '1px solid var(--border)',
   borderRadius: '6px',
   color: 'var(--text-primary)',
+  fontSize: '0.75rem',
+  padding: '8px 12px',
 };
+
+function ChartTooltip({ active, label, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const parts = (label as string).split('|');
+  return (
+    <div style={tooltipStyle} className="chart-tooltip">
+      <p style={{ fontWeight: 600, marginBottom: 4 }}>{parts[0]}</p>
+      {parts.length > 1 && <p style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{parts[1]}</p>}
+      {payload.map((entry: any, i: number) => (
+        <p key={i} style={{ color: entry.color }}>
+          {entry.name}: {entry.value}%
+        </p>
+      ))}
+    </div>
+  );
+}
 
 function CustomTick({ x, y, payload }: any) {
   const label = payload.value;
   const parts = label.split('|');
-  const isMiddle = parts.length > 1;
 
   return (
     <g transform={`translate(${x},${y})`}>
-      {isMiddle ? (
-        <>
-          <text x={0} y={0} dy={16} textAnchor="middle" fill="var(--text-muted)" fontSize={11}>
-            {parts[1]}
-          </text>
-          <text x={0} y={0} dy={28} textAnchor="middle" fill="var(--text-muted)" fontSize={9}>
-            {parts[0]}
-          </text>
-        </>
-      ) : (
-        <text x={0} y={0} dy={16} textAnchor="middle" fill="var(--text-muted)" fontSize={11}>
-          {parts[0]}
+      <text x={0} y={0} dy={14} textAnchor="middle" fill="var(--text-muted)" fontSize={9}>
+        {parts[0]}
+      </text>
+      {parts.length > 1 && (
+        <text x={0} y={0} dy={24} textAnchor="middle" fill="var(--text-muted)" fontSize={8}>
+          {parts[1]}
         </text>
       )}
     </g>
@@ -63,6 +74,11 @@ export default function ResourceDetailPage() {
 
   const rangeLabel = RANGE_LABELS[selectedDays] || `${selectedDays} days`;
 
+  const tickInterval = selectedDays <= 1 ? 0
+    : selectedDays <= 7 ? 6
+    : selectedDays <= 30 ? 71
+    : 119;
+
   const chartData = useMemo(() => {
     if (!metrics) return [];
     const points = metrics.dataPoints.map((p) => ({
@@ -72,23 +88,14 @@ export default function ResourceDetailPage() {
       requests: p.activeRequestCount,
     }));
 
-    const dayGroups: Record<string, number[]> = {};
-    points.forEach((p, i) => {
-      const day = format(new Date(p.timestamp), 'yyyy-MM-dd');
-      if (!dayGroups[day]) dayGroups[day] = [];
-      dayGroups[day].push(i);
-    });
-
-    return points.map((p, i) => {
-      const day = format(new Date(p.timestamp), 'yyyy-MM-dd');
-      const indices = dayGroups[day];
-      const middleIndex = indices[Math.floor(indices.length / 2)];
-      const time = format(new Date(p.timestamp), 'HH:mm');
-      const date = format(new Date(p.timestamp), 'MMM dd');
+    return points.map((p) => {
+      const ts = new Date(p.timestamp);
+      const time = format(ts, 'HH:mm');
+      const date = format(ts, 'MMM dd');
 
       return {
         ...p,
-        tickLabel: i === middleIndex ? `${time}|${date}` : time,
+        tickLabel: `${time}|${date}`,
       };
     });
   }, [metrics]);
@@ -137,10 +144,10 @@ export default function ResourceDetailPage() {
         <h2>CPU Utilization ({rangeLabel})</h2>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="tickLabel" tick={<CustomTick />} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="tickLabel" tick={<CustomTick />} interval={tickInterval} />
             <YAxis domain={[0, 100]} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip content={<ChartTooltip />} />
             <ReferenceLine y={65} stroke="var(--warning)" strokeDasharray="3 3" label="Peak Target" />
             <ReferenceLine y={10} stroke="var(--success)" strokeDasharray="3 3" label="Off-Peak Target" />
             <Area type="monotone" dataKey="cpu" stroke="var(--cpu-color)" fill="var(--cpu-color)" fillOpacity={0.3} />
@@ -152,49 +159,53 @@ export default function ResourceDetailPage() {
         <h2>Memory Utilization ({rangeLabel})</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="tickLabel" tick={<CustomTick />} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="tickLabel" tick={<CustomTick />} interval={tickInterval} />
             <YAxis domain={[0, 100]} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip content={<ChartTooltip />} />
             <Legend />
             <Line type="monotone" dataKey="memory" stroke="var(--memory-color)" name="Memory %" />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {recommendations.length > 0 && (
-        <div className="recommendations-section">
+      <div className="recommendations-section">
           <h2>Optimization Recommendations</h2>
-          {recommendations.map((rec, i) => (
-            <div key={i} className="card recommendation-card">
-              <div className="rec-header">
-                <h3>{rec.recommendationType.replace(/_/g, ' ')}</h3>
-                <span className="savings-badge">Save ${rec.estimatedMonthlySavingsUsd.toFixed(0)}/mo ({rec.estimatedSavingsPercentage.toFixed(1)}%)</span>
-              </div>
-              <div className="rec-body">
-                <div className="rec-configs">
-                  <div>
-                    <h4>Current</h4>
-                    <pre>{rec.currentConfiguration}</pre>
+          {recommendations.length > 0 ? (
+            <>
+              {recommendations.map((rec, i) => (
+                <div key={i} className="card recommendation-card">
+                  <div className="rec-header">
+                    <h3>{rec.recommendationType.replace(/_/g, ' ')}</h3>
+                    <span className="savings-badge">Save ${rec.estimatedMonthlySavingsUsd.toFixed(0)}/mo ({rec.estimatedSavingsPercentage.toFixed(1)}%)</span>
                   </div>
-                  <div>
-                    <h4>Recommended</h4>
-                    <pre>{rec.recommendedConfiguration}</pre>
+                  <div className="rec-body">
+                    <div className="rec-configs">
+                      <div>
+                        <h4>Current</h4>
+                        <pre>{rec.currentConfiguration}</pre>
+                      </div>
+                      <div>
+                        <h4>Recommended</h4>
+                        <pre>{rec.recommendedConfiguration}</pre>
+                      </div>
+                    </div>
+                    <p className="rec-rationale">{rec.rationale}</p>
+                    <div className="rec-meta">
+                      <span>Confidence: {(rec.confidenceScore * 100).toFixed(0)}%</span>
+                      <span>Peak: {rec.peakSchedule}</span>
+                    </div>
                   </div>
                 </div>
-                <p className="rec-rationale">{rec.rationale}</p>
-                <div className="rec-meta">
-                  <span>Confidence: {(rec.confidenceScore * 100).toFixed(0)}%</span>
-                  <span>Peak: {rec.peakSchedule}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-          <Link to={`/resources/${resourceId}/generate`} className="btn btn-primary">
-            Generate Scaling Code &rarr;
-          </Link>
+              ))}
+              <Link to={`/resources/${resourceId}/generate`} className="btn btn-primary">
+                Generate Scaling Code &rarr;
+              </Link>
+            </>
+          ) : (
+            <p className="empty-state">No optimization recommendations for this resource</p>
+          )}
         </div>
-      )}
     </div>
   );
 }

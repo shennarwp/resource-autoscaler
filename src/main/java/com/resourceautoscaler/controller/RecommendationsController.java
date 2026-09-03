@@ -68,8 +68,15 @@ public class RecommendationsController {
         }
 
         ScalingRecommendation rec = recs.getFirst();
-        String kedaYaml = codeGenerationService.generateKedaScaledObject(rec);
-        String terraformHcl = codeGenerationService.generateTerraformAutoscale(rec);
+
+        String kedaYaml = null;
+        String terraformHcl = null;
+
+        if (rec.recommendationType() == ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT) {
+            kedaYaml = codeGenerationService.generateKedaScaledObject(rec);
+        } else {
+            terraformHcl = codeGenerationService.generateTerraformAutoscale(rec);
+        }
 
         return ResponseEntity.ok(new RecommendationResponse(rec, kedaYaml, terraformHcl));
     }
