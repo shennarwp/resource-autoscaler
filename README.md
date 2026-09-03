@@ -61,6 +61,15 @@ Frontend at `http://localhost:80`, backend at `http://localhost:8080`.
 | `POST` | `/api/v1/recommendations/generate` | Generate KEDA YAML / Terraform HCL |
 | `GET` | `/api/v1/costs/analysis` | Full cost analysis with savings breakdown |
 
+### OpenAPI / Swagger UI
+
+The API spec is auto-generated on every startup from controllers and models.
+
+| Path | Description |
+|------|-------------|
+| `/v3/api-docs` | OpenAPI 3.0 JSON spec |
+| `/swagger-ui.html` | Interactive Swagger UI |
+
 ## Profiles
 
 | Profile | Description |
@@ -73,7 +82,7 @@ Frontend at `http://localhost:80`, backend at `http://localhost:8080`.
 ```
 .
 ├── src/main/java/com/resourceautoscaler/
-│   ├── config/           # CORS, Jackson config
+│   ├── config/           # CORS, Jackson, OpenAPI config
 │   ├── controller/       # REST endpoints
 │   ├── dto/              # Request/response DTOs
 │   ├── model/            # Domain records
