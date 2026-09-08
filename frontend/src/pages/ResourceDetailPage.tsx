@@ -83,7 +83,7 @@ function computeLabelTimes(minT: number, maxT: number, everyMinutes: number): nu
   const step = everyMinutes * 60 * 1000;
   const times: number[] = [];
   for (let t = Math.floor(minT / step) * step; t <= maxT; t += step) {
-    times.push(t);
+    if (t >= minT) times.push(t);
   }
   return times;
 }
