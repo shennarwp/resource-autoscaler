@@ -19,6 +19,8 @@ public record ResourceMetrics(
         double maxMemoryUtilization,
         double avgActiveRequests,
         double peakHourUtilization,
-        double offPeakHourUtilization
+        double offPeakHourUtilization,
+        int peakSampleCount,
+        int offPeakSampleCount
     ) {}
 }

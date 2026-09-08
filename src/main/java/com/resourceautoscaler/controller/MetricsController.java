@@ -30,10 +30,6 @@ public class MetricsController {
             @RequestParam(defaultValue = "30") double days
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);
-        PeakHoursConfig config = new PeakHoursConfig(
-            java.time.LocalTime.of(7, 0), java.time.LocalTime.of(18, 0),
-            List.of(1, 2, 3, 4, 5), 65.0, 10.0, 15
-        );
 
         ResourceMetrics.AggregatedStats stats = metrics.aggregated();
         return ResponseEntity.ok(new MetricsResponse(
@@ -53,6 +49,6 @@ public class MetricsController {
 
     @GetMapping("/{resourceId}/peak-config")
     public ResponseEntity<PeakHoursConfig> getPeakHoursConfig(@PathVariable String resourceId) {
-        return ResponseEntity.ok(PeakHoursConfig.defaults());
+        return ResponseEntity.ok(metricsService.getPeakHoursConfig(resourceId));
     }
 }

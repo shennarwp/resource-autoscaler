@@ -11,7 +11,6 @@ import com.resourceautoscaler.service.MetricsCollectionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -39,10 +38,7 @@ public class RecommendationsController {
             @RequestParam(defaultValue = "560.00") double currentMonthlyCost
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);
-        PeakHoursConfig config = new PeakHoursConfig(
-            LocalTime.of(7, 0), LocalTime.of(18, 0),
-            List.of(1, 2, 3, 4, 5), 65.0, 10.0, 15
-        );
+        PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
         List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(metrics, config, currentMonthlyCost);
         return ResponseEntity.ok(recs);
     }
@@ -52,11 +48,14 @@ public class RecommendationsController {
             @RequestBody RecommendationRequest request
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(request.resourceId(), 30);
+        PeakHoursConfig baseConfig = metricsService.getPeakHoursConfig(request.resourceId());
         PeakHoursConfig config = new PeakHoursConfig(
-            request.peakStart() != null ? request.peakStart() : LocalTime.of(7, 0),
-            request.peakEnd() != null ? request.peakEnd() : LocalTime.of(18, 0),
-            request.peakDaysOfWeek() != null ? request.peakDaysOfWeek() : List.of(1, 2, 3, 4, 5),
-            65.0, 10.0, 15
+            request.peakStart() != null ? request.peakStart() : baseConfig.peakStart(),
+            request.peakEnd() != null ? request.peakEnd() : baseConfig.peakEnd(),
+            request.peakDaysOfWeek() != null ? request.peakDaysOfWeek() : baseConfig.peakDaysOfWeek(),
+            baseConfig.peakTargetUtilization(),
+            baseConfig.offPeakTargetUtilization(),
+            baseConfig.scalingCooldownMinutes()
         );
 
         List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(

@@ -46,7 +46,7 @@ public class MetricsCollectionService {
             List<MetricPoint> dataPoints, PeakHoursConfig config
     ) {
         if (dataPoints.isEmpty()) {
-            return new ResourceMetrics.AggregatedStats(0, 0, 0, 0, 0, 0, 0, 0);
+            return new ResourceMetrics.AggregatedStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         double cpuSum = 0, cpuMax = Double.MIN_VALUE, cpuMin = Double.MAX_VALUE;
@@ -64,12 +64,18 @@ public class MetricsCollectionService {
             reqSum += p.activeRequestCount();
 
             java.time.ZonedDateTime zdt = p.timestamp().atZone(java.time.ZoneId.of("UTC"));
-            int hour = zdt.getHour();
-            java.time.DayOfWeek dow = zdt.getDayOfWeek();
-            boolean isPeakDay = config.peakDaysOfWeek().contains(dow.getValue());
-            boolean isPeakHour = hour >= config.peakStart().getHour() && hour <= config.peakEnd().getHour();
+            int daySeconds = zdt.toLocalTime().toSecondOfDay();
+            int peakStartSeconds = config.peakStart().toSecondOfDay();
+            int peakEndSeconds = config.peakEnd().toSecondOfDay();
+            boolean isPeakDay = config.peakDaysOfWeek().contains(zdt.getDayOfWeek().getValue());
+            boolean isPeakTime;
+            if (peakStartSeconds <= peakEndSeconds) {
+                isPeakTime = daySeconds >= peakStartSeconds && daySeconds < peakEndSeconds;
+            } else {
+                isPeakTime = daySeconds >= peakStartSeconds || daySeconds < peakEndSeconds;
+            }
 
-            if (isPeakDay && isPeakHour) {
+            if (isPeakDay && isPeakTime) {
                 peakSum += p.cpuUtilization();
                 peakCount++;
             } else {
@@ -87,8 +93,14 @@ public class MetricsCollectionService {
             memMax,
             reqSum / size,
             peakCount > 0 ? peakSum / peakCount : 0,
-            offPeakCount > 0 ? offPeakSum / offPeakCount : 0
+            offPeakCount > 0 ? offPeakSum / offPeakCount : 0,
+            (int) peakCount,
+            (int) offPeakCount
         );
+    }
+
+    public PeakHoursConfig getPeakHoursConfig(String resourceId) {
+        return metricsRepository.getPeakHoursConfig(resourceId);
     }
 
     private String getColumnType(String resourceId) {

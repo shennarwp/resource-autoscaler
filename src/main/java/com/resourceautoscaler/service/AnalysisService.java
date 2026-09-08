@@ -5,6 +5,7 @@ import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -22,7 +23,8 @@ public class AnalysisService {
 
         ResourceMetrics.AggregatedStats stats = metrics.aggregated();
 
-        if (stats.offPeakHourUtilization() < config.offPeakTargetUtilization()
+        if (stats.peakSampleCount() >= 1 && stats.offPeakSampleCount() >= 1
+                && stats.offPeakHourUtilization() < config.offPeakTargetUtilization()
                 && stats.peakHourUtilization() > config.peakTargetUtilization()) {
 
             double savingsPercent = calculateSavingsPercentage(stats, config);
@@ -61,12 +63,28 @@ public class AnalysisService {
             ResourceMetrics.AggregatedStats stats,
             PeakHoursConfig config
     ) {
-        double peakHoursFraction = (double)(config.peakEnd().getHour() - config.peakStart().getHour()) / 24.0;
-        double offPeakHoursFraction = 1.0 - peakHoursFraction;
+        double offPeakHoursFraction = offPeakHoursFraction(config);
 
-        double offPeakReduction = 1.0 - (config.offPeakTargetUtilization() / Math.max(stats.offPeakHourUtilization(), 1.0));
+        double offPeakRatio = config.offPeakTargetUtilization() > 0
+            ? Math.min(stats.offPeakHourUtilization() / config.offPeakTargetUtilization(), 1.0)
+            : 1.0;
+        double offPeakReduction = 1.0 - offPeakRatio;
 
         return offPeakHoursFraction * offPeakReduction * 100.0;
+    }
+
+    private double peakHoursPerDay(PeakHoursConfig config) {
+        long seconds = Duration.between(config.peakStart(), config.peakEnd()).toSeconds();
+        if (seconds <= 0) {
+            seconds += 24L * 3600L;
+        }
+        return seconds / 3600.0;
+    }
+
+    private double offPeakHoursFraction(PeakHoursConfig config) {
+        int peakDays = config.peakDaysOfWeek().size();
+        double peakFraction = (peakDays * peakHoursPerDay(config)) / (7.0 * 24.0);
+        return Math.max(0.0, Math.min(1.0, 1.0 - peakFraction));
     }
 
     private double calculateConfidenceScore(
@@ -127,12 +145,12 @@ public class AnalysisService {
     ) {
         return String.format(
             "Detected significant utilization gap: peak hours avg %.1f%% CPU vs off-peak avg %.1f%% CPU. " +
-            "Off-peak resources are idle for ~%.0f%% of the day. " +
+            "Off-peak resources are idle for ~%.0f%% of the week. " +
             "Applying schedule-based scaling to reduce off-peak provisioned capacity " +
             "yields an estimated %.1f%% cost reduction with minimal risk.",
             stats.peakHourUtilization(),
             stats.offPeakHourUtilization(),
-            (1.0 - (double)(config.peakEnd().getHour() - config.peakStart().getHour()) / 24.0) * 100,
+            offPeakHoursFraction(config) * 100,
             savingsPercent
         );
     }
