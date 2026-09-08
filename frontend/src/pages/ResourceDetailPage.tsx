@@ -89,10 +89,7 @@ function computeLabelTimes(minT: number, maxT: number, everyMinutes: number): nu
 }
 
 function tickFormatter(value: number): string {
-  const date = new Date(value);
-  const time = format(date, 'HH:mm');
-  const dateLabel = format(date, 'MMM dd');
-  return `${time}|${dateLabel}`;
+  return format(new Date(value), 'HH:mm');
 }
 
 export default function ResourceDetailPage() {
