@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { metricsApi, costApi, recommendationsApi } from '../services/api';
-import type { MetricsResponse, CostAnalysis, ScalingRecommendation } from '../types/api';
+import type { MetricsResponse, CostAnalysis, ScalingRecommendation, PeakHoursConfig } from '../types/api';
 
 export function useMetrics(resourceId: string | null, days = 30) {
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
@@ -18,6 +18,26 @@ export function useMetrics(resourceId: string | null, days = 30) {
   }, [resourceId, days]);
 
   return { metrics, loading: loading && !metrics, refreshing: loading && !!metrics, error };
+}
+
+export function usePeakHoursConfig(resourceId: string | null): PeakHoursConfig | null {
+  const [config, setConfig] = useState<PeakHoursConfig | null>(null);
+
+  useEffect(() => {
+    if (!resourceId) return;
+    let cancelled = false;
+    metricsApi
+      .getPeakHoursConfig(resourceId)
+      .then((config) => {
+        if (!cancelled) setConfig(config);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceId]);
+
+  return config;
 }
 
 export function useCostAnalysis() {

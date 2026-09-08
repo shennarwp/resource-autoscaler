@@ -23,6 +23,15 @@ export interface MetricsResponse {
   stats: AggregatedStats;
 }
 
+export interface PeakHoursConfig {
+  peakStart: string;
+  peakEnd: string;
+  peakDaysOfWeek: number[];
+  peakTargetUtilization: number;
+  offPeakTargetUtilization: number;
+  scalingCooldownMinutes: number;
+}
+
 export interface ScalingRecommendation {
   resourceId: string;
   resourceName: string;
