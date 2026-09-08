@@ -70,4 +70,21 @@ class AnalysisServiceTest {
         assertEquals(1, recs.size());
         assertEquals(100.0 / 3.0 * 0.5, recs.getFirst().estimatedSavingsPercentage(), 0.01);
     }
+
+    @Test
+    void weekendDaysIncreaseOffPeakWeightingForSameUtilization() {
+        PeakHoursConfig sevenDayConfig = new PeakHoursConfig(
+            LocalTime.of(7, 0), LocalTime.of(18, 0),
+            List.of(1, 2, 3, 4, 5, 6, 0), 65.0, 10.0, 15);
+
+        double weekdaySavings = service.analyzeAndRecommend(metricsWith(80, 5, 100, 100), config, 100.0)
+            .getFirst().estimatedSavingsPercentage();
+        double weekendIncludedSavings = service.analyzeAndRecommend(
+            metricsWith(80, 5, 100, 100), sevenDayConfig, 100.0)
+            .getFirst().estimatedSavingsPercentage();
+
+        assertEquals((1.0 - (5.0 * 11.0) / (7.0 * 24.0)) * 50.0, weekdaySavings, 0.01);
+        assertEquals((1.0 - (7.0 * 11.0) / (7.0 * 24.0)) * 50.0, weekendIncludedSavings, 0.01);
+        assertTrue(weekdaySavings > weekendIncludedSavings);
+    }
 }

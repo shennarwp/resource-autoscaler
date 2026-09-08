@@ -8,11 +8,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +39,96 @@ class MetricsCollectionServiceTest {
         assertEquals(3, metrics.aggregated().offPeakSampleCount());
         assertEquals(55.0, metrics.aggregated().peakHourUtilization(), 0.001);
         assertEquals(35.0 / 3.0, metrics.aggregated().offPeakHourUtilization(), 0.001);
+    }
+
+    @Test
+    void classificationHonorsNonZeroMinutesInPeakWindow() {
+        PeakHoursConfig config = new PeakHoursConfig(
+            LocalTime.of(6, 30), LocalTime.of(22, 30),
+            List.of(1, 2, 3, 4, 5), 65.0, 10.0, 15
+        );
+        MetricsRepository repo = mock(MetricsRepository.class);
+        when(repo.getPeakHoursConfig(anyString())).thenReturn(config);
+        when(repo.getAllMetrics(anyString(), any(Duration.class))).thenReturn(List.of(
+            point("2026-09-08T06:29:00Z", 10),
+            point("2026-09-08T06:30:00Z", 20),
+            point("2026-09-08T22:29:00Z", 30),
+            point("2026-09-08T22:30:00Z", 40)
+        ));
+
+        MetricsCollectionService service = new MetricsCollectionService(repo);
+        ResourceMetrics metrics = service.collectMetrics("aks-primary-cluster", 1);
+
+        assertEquals(2, metrics.aggregated().peakSampleCount());
+        assertEquals(2, metrics.aggregated().offPeakSampleCount());
+        assertEquals(25.0, metrics.aggregated().peakHourUtilization(), 0.001);
+        assertEquals(25.0, metrics.aggregated().offPeakHourUtilization(), 0.001);
+    }
+
+    @Test
+    void classificationHandlesWindowCrossingMidnight() {
+        PeakHoursConfig config = new PeakHoursConfig(
+            LocalTime.of(22, 0), LocalTime.of(6, 0),
+            List.of(1, 2, 3, 4, 5), 65.0, 10.0, 15
+        );
+        MetricsRepository repo = mock(MetricsRepository.class);
+        when(repo.getPeakHoursConfig(anyString())).thenReturn(config);
+        when(repo.getAllMetrics(anyString(), any(Duration.class))).thenReturn(List.of(
+            point("2026-09-08T23:00:00Z", 10),
+            point("2026-09-08T05:59:00Z", 20),
+            point("2026-09-08T06:00:00Z", 30),
+            point("2026-09-08T12:00:00Z", 40)
+        ));
+
+        MetricsCollectionService service = new MetricsCollectionService(repo);
+        ResourceMetrics metrics = service.collectMetrics("aks-primary-cluster", 1);
+
+        assertEquals(2, metrics.aggregated().peakSampleCount());
+        assertEquals(2, metrics.aggregated().offPeakSampleCount());
+        assertEquals(15.0, metrics.aggregated().peakHourUtilization(), 0.001);
+        assertEquals(35.0, metrics.aggregated().offPeakHourUtilization(), 0.001);
+    }
+
+    @Test
+    void statsUseResourceSpecificPeakHoursConfigFromRepository() {
+        PeakHoursConfig functionConfig = new PeakHoursConfig(
+            LocalTime.of(6, 0), LocalTime.of(22, 0),
+            List.of(1, 2, 3, 4, 5, 6, 0), 55.0, 8.0, 10
+        );
+        MetricPoint atEightPm = point("2026-09-08T20:00:00Z", 30);
+
+        MetricsRepository repo = mock(MetricsRepository.class);
+        when(repo.getPeakHoursConfig("function-data-processor")).thenReturn(functionConfig);
+        when(repo.getPeakHoursConfig("aks-primary-cluster")).thenReturn(PeakHoursConfig.defaults());
+        when(repo.getAllMetrics(eq("function-data-processor"), any(Duration.class)))
+            .thenReturn(List.of(atEightPm));
+        when(repo.getAllMetrics(eq("aks-primary-cluster"), any(Duration.class)))
+            .thenReturn(List.of(atEightPm));
+
+        MetricsCollectionService service = new MetricsCollectionService(repo);
+        ResourceMetrics functionMetrics = service.collectMetrics("function-data-processor", 1);
+        ResourceMetrics aksMetrics = service.collectMetrics("aks-primary-cluster", 1);
+
+        assertEquals(1, functionMetrics.aggregated().peakSampleCount());
+        assertEquals(0, functionMetrics.aggregated().offPeakSampleCount());
+        assertEquals(0, aksMetrics.aggregated().peakSampleCount());
+        assertEquals(1, aksMetrics.aggregated().offPeakSampleCount());
+    }
+
+    @Test
+    void exposesRepositoryPeakHoursConfig() {
+        PeakHoursConfig functionConfig = new PeakHoursConfig(
+            LocalTime.of(6, 0), LocalTime.of(22, 0),
+            List.of(1, 2, 3, 4, 5, 6, 0), 55.0, 8.0, 10
+        );
+        MetricsRepository repo = mock(MetricsRepository.class);
+        when(repo.getPeakHoursConfig(anyString())).thenReturn(PeakHoursConfig.defaults());
+        when(repo.getPeakHoursConfig("function-data-processor")).thenReturn(functionConfig);
+
+        MetricsCollectionService service = new MetricsCollectionService(repo);
+
+        assertEquals(functionConfig, service.getPeakHoursConfig("function-data-processor"));
+        assertEquals(PeakHoursConfig.defaults(), service.getPeakHoursConfig("aks-primary-cluster"));
     }
 
     private MetricPoint point(String iso, double cpu) {
