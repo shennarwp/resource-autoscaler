@@ -81,16 +81,33 @@ public class AzureMetricsRepository implements MetricsRepository {
         List<MetricPoint> cpu = getCpuUtilization(resourceId, timeRange);
         List<MetricPoint> mem = getMemoryUtilization(resourceId, timeRange);
         List<MetricPoint> req = getActiveRequestCount(resourceId, timeRange);
+        return mergeByTimestamp(resourceId, getResourceType(resourceId), cpu, mem, req);
+    }
+
+    static List<MetricPoint> mergeByTimestamp(
+            String resourceId, String resourceType,
+            List<MetricPoint> cpu, List<MetricPoint> mem, List<MetricPoint> req
+    ) {
+        java.util.Map<Instant, double[]> byTimestamp = new java.util.TreeMap<>();
+        for (MetricPoint p : cpu) {
+            byTimestamp.computeIfAbsent(p.timestamp(), k -> new double[3])[0] = p.cpuUtilization();
+        }
+        for (MetricPoint p : mem) {
+            byTimestamp.computeIfAbsent(p.timestamp(), k -> new double[3])[1] = p.memoryUtilization();
+        }
+        for (MetricPoint p : req) {
+            byTimestamp.computeIfAbsent(p.timestamp(), k -> new double[3])[2] = p.activeRequestCount();
+        }
 
         List<MetricPoint> merged = new ArrayList<>();
-        for (int i = 0; i < cpu.size(); i++) {
+        for (java.util.Map.Entry<Instant, double[]> entry : byTimestamp.entrySet()) {
             merged.add(new MetricPoint(
-                cpu.get(i).timestamp(),
-                cpu.get(i).cpuUtilization(),
-                i < mem.size() ? mem.get(i).memoryUtilization() : 0,
-                i < req.size() ? (int) req.get(i).activeRequestCount() : 0,
+                entry.getKey(),
+                entry.getValue()[0],
+                entry.getValue()[1],
+                (int) Math.round(entry.getValue()[2]),
                 resourceId,
-                getResourceType(resourceId)
+                resourceType
             ));
         }
         return merged;

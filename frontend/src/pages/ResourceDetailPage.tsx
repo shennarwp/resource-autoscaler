@@ -103,8 +103,8 @@ function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
   const [selectedDays, setSelectedDays] = useState(1);
-  const { metrics, loading: metricsLoading } = useMetrics(resourceId ?? null, selectedDays);
-  const { recommendations } = useRecommendations(resourceId ?? null, selectedDays);
+  const { metrics, loading: metricsLoading, refreshing: metricsRefreshing } = useMetrics(resourceId ?? null, selectedDays);
+  const { recommendations, refreshing: recommendationsRefreshing } = useRecommendations(resourceId ?? null, selectedDays);
 
   const rangeLabel = RANGE_LABELS[selectedDays] || `${selectedDays} days`;
   const labelEvery = LABEL_EVERY_MINUTES[selectedDays] ?? 60;
@@ -163,6 +163,9 @@ export default function ResourceDetailPage() {
             {range.label}
           </button>
         ))}
+        {(metricsRefreshing || recommendationsRefreshing) && (
+          <span className="refreshing">Updating&hellip;</span>
+        )}
       </div>
 
       <div className="stats-row">

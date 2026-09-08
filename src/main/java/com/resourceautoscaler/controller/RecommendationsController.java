@@ -7,6 +7,7 @@ import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import com.resourceautoscaler.service.AnalysisService;
 import com.resourceautoscaler.service.CodeGenerationService;
+import com.resourceautoscaler.service.CostEstimateService;
 import com.resourceautoscaler.service.MetricsCollectionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,25 +21,28 @@ public class RecommendationsController {
     private final MetricsCollectionService metricsService;
     private final AnalysisService analysisService;
     private final CodeGenerationService codeGenerationService;
+    private final CostEstimateService costEstimateService;
 
     public RecommendationsController(
             MetricsCollectionService metricsService,
             AnalysisService analysisService,
-            CodeGenerationService codeGenerationService
+            CodeGenerationService codeGenerationService,
+            CostEstimateService costEstimateService
     ) {
         this.metricsService = metricsService;
         this.analysisService = analysisService;
         this.codeGenerationService = codeGenerationService;
+        this.costEstimateService = costEstimateService;
     }
 
     @GetMapping("/{resourceId}")
     public ResponseEntity<List<ScalingRecommendation>> getRecommendations(
             @PathVariable String resourceId,
-            @RequestParam(defaultValue = "30") double days,
-            @RequestParam(defaultValue = "560.00") double currentMonthlyCost
+            @RequestParam(defaultValue = "30") double days
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);
         PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
+        double currentMonthlyCost = costEstimateService.estimateMonthlyCost(metrics.resourceType());
         List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(metrics, config, currentMonthlyCost);
         return ResponseEntity.ok(recs);
     }
@@ -59,7 +63,11 @@ public class RecommendationsController {
         );
 
         List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(
-            metrics, config, request.currentMonthlyCostUsd()
+            metrics,
+            config,
+            request.currentMonthlyCostUsd() > 0
+                ? request.currentMonthlyCostUsd()
+                : costEstimateService.estimateMonthlyCost(metrics.resourceType())
         );
 
         if (recs.isEmpty()) {

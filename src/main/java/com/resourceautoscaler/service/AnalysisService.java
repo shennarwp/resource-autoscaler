@@ -103,7 +103,7 @@ public class AnalysisService {
 
     private ScalingRecommendation.RecommendationType determineRecommendationType(String resourceType) {
         return switch (resourceType) {
-            case "AKS_CLUSTER" -> ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT;
+            case "AKS_CLUSTER", "K8S_CLUSTER" -> ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT;
             case "AZURE_VM" -> ScalingRecommendation.RecommendationType.TERRAFORM_AUTOSCALE;
             case "APP_SERVICE" -> ScalingRecommendation.RecommendationType.SCHEDULE_BASED_SCALING;
             case "AZURE_FUNCTION" -> ScalingRecommendation.RecommendationType.SCHEDULE_BASED_SCALING;
@@ -113,7 +113,7 @@ public class AnalysisService {
 
     private String describeCurrentConfig(String resourceType) {
         return switch (resourceType) {
-            case "AKS_CLUSTER" -> "3 replicas, 2 CPU / 4Gi memory, running 24/7";
+            case "AKS_CLUSTER", "K8S_CLUSTER" -> "3 replicas, 2 CPU / 4Gi memory, running 24/7";
             case "AZURE_VM" -> "Standard_D4s_v3 (4 vCPU, 16 GiB), always on";
             case "APP_SERVICE" -> "Standard S3 tier, always running";
             case "AZURE_FUNCTION" -> "Consumption plan, always warm";
@@ -123,7 +123,7 @@ public class AnalysisService {
 
     private String describeRecommendedConfig(String resourceType, PeakHoursConfig config) {
         return switch (resourceType) {
-            case "AKS_CLUSTER" ->
+            case "AKS_CLUSTER", "K8S_CLUSTER" ->
                 "KEDA ScaledObject: 3 replicas " + config.peakStart() + "-" + config.peakEnd() +
                 ", 1 replica " + config.peakEnd() + "-" + config.peakStart();
             case "AZURE_VM" ->
@@ -157,7 +157,7 @@ public class AnalysisService {
 
     private com.resourceautoscaler.model.ScalingRecommendation.ResourceType mapResourceType(String type) {
         return switch (type) {
-            case "AKS_CLUSTER" -> com.resourceautoscaler.model.ScalingRecommendation.ResourceType.AKS_DEPLOYMENT;
+            case "AKS_CLUSTER", "K8S_CLUSTER" -> com.resourceautoscaler.model.ScalingRecommendation.ResourceType.AKS_DEPLOYMENT;
             case "AZURE_VM" -> com.resourceautoscaler.model.ScalingRecommendation.ResourceType.AZURE_VM;
             case "APP_SERVICE" -> com.resourceautoscaler.model.ScalingRecommendation.ResourceType.AZURE_APP_SERVICE;
             case "AZURE_FUNCTION" -> com.resourceautoscaler.model.ScalingRecommendation.ResourceType.AZURE_FUNCTION;

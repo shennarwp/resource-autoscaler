@@ -31,7 +31,9 @@ class CostOptimizationServiceTest {
     void positiveSavingsAreSubtractedAndResourceConfigIsUsed() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
         AnalysisService analysisService = mock(AnalysisService.class);
-        CostOptimizationService service = new CostOptimizationService(metricsService, analysisService);
+        CostEstimateService costEstimateService = mock(CostEstimateService.class);
+        CostOptimizationService service =
+            new CostOptimizationService(metricsService, analysisService, costEstimateService);
 
         ResourceMetrics metrics = new ResourceMetrics(
             "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
@@ -53,6 +55,7 @@ class CostOptimizationServiceTest {
         when(metricsService.getMonitoredResources()).thenReturn(List.of("aks-primary-cluster"));
         when(metricsService.collectMetrics("aks-primary-cluster", 30.0)).thenReturn(metrics);
         when(metricsService.getPeakHoursConfig("aks-primary-cluster")).thenReturn(functionConfig);
+        when(costEstimateService.estimateMonthlyCost("AKS_CLUSTER")).thenReturn(2400.0);
         when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of(rec));
 
         CostAnalysis analysis = service.generateCostAnalysis();

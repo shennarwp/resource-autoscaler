@@ -16,13 +16,16 @@ public class CostOptimizationService {
 
     private final MetricsCollectionService metricsService;
     private final AnalysisService analysisService;
+    private final CostEstimateService costEstimateService;
 
     public CostOptimizationService(
             MetricsCollectionService metricsService,
-            AnalysisService analysisService
+            AnalysisService analysisService,
+            CostEstimateService costEstimateService
     ) {
         this.metricsService = metricsService;
         this.analysisService = analysisService;
+        this.costEstimateService = costEstimateService;
     }
 
     public CostAnalysis generateCostAnalysis() {
@@ -37,7 +40,7 @@ public class CostOptimizationService {
             ResourceMetrics metrics = metricsService.collectMetrics(resourceId, 30);
             PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
 
-            double monthlyCost = estimateMonthlyCost(metrics.resourceType());
+            double monthlyCost = costEstimateService.estimateMonthlyCost(metrics.resourceType());
             List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(metrics, config, monthlyCost);
 
             double optimizedCost = monthlyCost;
@@ -82,15 +85,5 @@ public class CostOptimizationService {
                 String.format("%.2f", (totalCurrent - totalOptimized) * 12)
             )
         );
-    }
-
-    private double estimateMonthlyCost(String resourceType) {
-        return switch (resourceType) {
-            case "AKS_CLUSTER" -> 2400.00;
-            case "AZURE_VM" -> 560.00;
-            case "APP_SERVICE" -> 380.00;
-            case "AZURE_FUNCTION" -> 120.00;
-            default -> 200.00;
-        };
     }
 }

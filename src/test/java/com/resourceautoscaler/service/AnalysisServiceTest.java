@@ -19,6 +19,10 @@ class AnalysisServiceTest {
     private final PeakHoursConfig config = PeakHoursConfig.defaults();
 
     private ResourceMetrics metricsWith(double peakUtil, double offPeakUtil, int peakSamples, int offPeakSamples) {
+        return metricsWith("AKS_CLUSTER", peakUtil, offPeakUtil, peakSamples, offPeakSamples);
+    }
+
+    private ResourceMetrics metricsWith(String resourceType, double peakUtil, double offPeakUtil, int peakSamples, int offPeakSamples) {
         ResourceMetrics.AggregatedStats stats = new ResourceMetrics.AggregatedStats(
             30, 60, 5,
             55, 70,
@@ -27,7 +31,7 @@ class AnalysisServiceTest {
             peakSamples, offPeakSamples
         );
         return new ResourceMetrics(
-            "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
+            "aks-primary-cluster", resourceType, "Primary AKS Cluster",
             Instant.now(), List.<MetricPoint>of(), stats
         );
     }
@@ -86,5 +90,18 @@ class AnalysisServiceTest {
         assertEquals((1.0 - (5.0 * 11.0) / (7.0 * 24.0)) * 50.0, weekdaySavings, 0.01);
         assertEquals((1.0 - (7.0 * 11.0) / (7.0 * 24.0)) * 50.0, weekendIncludedSavings, 0.01);
         assertTrue(weekdaySavings > weekendIncludedSavings);
+    }
+
+    @Test
+    void kubernetesClusterGetsKedaRecommendation() {
+        List<ScalingRecommendation> recs = service.analyzeAndRecommend(
+            metricsWith("K8S_CLUSTER", 80, 5, 100, 100), config, 2400.0);
+
+        assertEquals(1, recs.size());
+        ScalingRecommendation rec = recs.getFirst();
+        assertEquals(ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT, rec.recommendationType());
+        assertEquals(ScalingRecommendation.ResourceType.AKS_DEPLOYMENT, rec.resourceType());
+        assertTrue(rec.currentConfiguration().contains("3 replicas"));
+        assertTrue(rec.recommendedConfiguration().contains("KEDA ScaledObject"));
     }
 }
