@@ -186,6 +186,7 @@ export default function ResourceDetailPage() {
 
       <div className="chart-section">
         <h2>CPU Utilization ({rangeLabel})</h2>
+        <p className="chart-info">Max CPU: {chartData.length > 0 ? Math.max(...chartData.map((p) => p.cpu)).toFixed(1) : '—'}%</p>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
