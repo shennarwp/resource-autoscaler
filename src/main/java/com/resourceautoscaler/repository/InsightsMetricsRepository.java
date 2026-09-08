@@ -23,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Reads cluster metrics from Azure Monitor Container Insights (Log Analytics).
@@ -142,6 +143,14 @@ public class InsightsMetricsRepository implements MetricsRepository {
         }
     }
 
+    @Override
+    public Optional<List<MetricPoint>> downloadRawMetrics(String resourceId, Instant start, Instant end) {
+        OffsetDateTime from = start.atOffset(ZoneOffset.UTC);
+        OffsetDateTime to = end.atOffset(ZoneOffset.UTC);
+        String query = buildExportQuery(resourceId, start.toString(), end.toString(), 60L, POD_NAMESPACE);
+        return Optional.of(toPoints(resourceId, runQuery(query, from, to), null));
+    }
+
     /**
      * Discovers the deployment's current configuration from Container Insights:
      * desired/available replicas (KubeDeployment metric), per-container resource
@@ -191,6 +200,36 @@ public class InsightsMetricsRepository implements MetricsRepository {
             """.formatted(range, namespace, resourceId, namespace, resourceId);
     }
 
+    /**
+     * Downloads full-resolution (60s) samples for an explicit [start, end] window,
+     * using {@code between (datetime(..) .. datetime(..))} so the returned points
+     * are exactly the requested range rather than "last N" before now.
+     */
+    static String buildExportQuery(String resourceId, String startIso, String endIso, long stepSeconds, String namespace) {
+        return """
+            let pod = KubePodInventory
+            | where TimeGenerated between (datetime(%s) .. datetime(%s))
+            | where Namespace == '%s'
+            | where Name startswith '%s-'
+            | project PodUid = tostring(PodUid);
+            Perf
+            | where ObjectName == 'K8SContainer'
+            | where CounterName in %s
+            | where TimeGenerated between (datetime(%s) .. datetime(%s))
+            | extend PodUid = tostring(split(InstanceName,'/')[-2])
+            | join kind=inner (pod) on PodUid
+            | summarize
+                usage  = sum(case(CounterName=='cpuUsageNanoCores', CounterValue, 0.0)),
+                lim    = sum(case(CounterName=='cpuLimitNanoCores', CounterValue, 0.0)),
+                memUse = sum(case(CounterName=='memoryWorkingSetBytes', CounterValue, 0.0)),
+                memLim = sum(case(CounterName=='memoryLimitBytes', CounterValue, 0.0))
+              by bin(TimeGenerated, %ds)
+            | where lim > 0 and memLim > 0
+            | extend cpuPct = iif(usage > lim, 100.0, usage*100.0/lim), memPct = iif(memUse > memLim, 100.0, memUse*100.0/memLim)
+            | project TimeGenerated, cpuPct = round(cpuPct, 2), memPct = round(memPct, 2)
+            """.formatted(startIso, endIso, namespace, resourceId, COUNTERS, startIso, endIso, stepSeconds);
+    }
+
     static CurrentConfig currentConfigFromValues(
             String resourceId,
             Double spec, Double avail, Double cpuReq, Double cpuLim,
@@ -236,24 +275,14 @@ public class InsightsMetricsRepository implements MetricsRepository {
         return points;
     }
 
-    private List<Row> queryCombined(String resourceId, Duration timeRange) {
-        String range = timespan(timeRange.plus(Duration.ofMinutes(5)));
-        long step = stepSeconds(timeRange);
-
-        String query = buildQuery(resourceId, range, step);
-
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        QueryTimeInterval interval = new QueryTimeInterval(
-                now.minus(timeRange).minus(Duration.ofMinutes(5)),
-                now
-        );
-
+    private List<Row> runQuery(String query, OffsetDateTime from, OffsetDateTime to) {
+        QueryTimeInterval interval = new QueryTimeInterval(from, to);
         try {
             LogsQueryResult result = logsClient.queryWorkspace(workspaceId, query, interval);
             if (result == null
                     || result.getQueryResultStatus() == LogsQueryResultStatus.FAILURE
                     || result.getTable() == null) {
-                log.warn("Container Insights query for {} failed: {}", resourceId,
+                log.warn("Container Insights query failed: {}",
                         result != null ? result.getError() : "no result");
                 return List.of();
             }
@@ -274,9 +303,19 @@ public class InsightsMetricsRepository implements MetricsRepository {
             rows.sort(java.util.Comparator.comparing(Row::timestamp));
             return rows;
         } catch (RuntimeException e) {
-            log.error("Container Insights query failed for resource {}", resourceId, e);
+            log.error("Container Insights query failed for resource {}", query, e);
             return List.of();
         }
+    }
+
+    private List<Row> queryCombined(String resourceId, Duration timeRange) {
+        String range = timespan(timeRange.plus(Duration.ofMinutes(5)));
+        long step = stepSeconds(timeRange);
+
+        String query = buildQuery(resourceId, range, step);
+
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        return runQuery(query, now.minus(timeRange).minus(Duration.ofMinutes(5)), now);
     }
 
     private String buildQuery(String resourceId, String range, long step) {

@@ -2,7 +2,13 @@ package com.resourceautoscaler.repository;
 
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
+import com.resourceautoscaler.model.MetricsSnapshot;
 import com.resourceautoscaler.model.PeakHoursConfig;
+import com.resourceautoscaler.store.SnapshotStore;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
@@ -12,11 +18,18 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Default profile repository. The mock UI shows only the Kubernetes cluster
+ * (default {@code nginx-busy}); when a downloaded metrics snapshot exists for it,
+ * that real data is replayed for any requested timeframe (tiled by the snapshot's
+ * span), otherwise a deterministic sine-wave generator is used.
+ */
 @Repository
 @Profile("mock")
 public class MockMetricsRepository implements MetricsRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(MockMetricsRepository.class);
 
     private static final Map<String, PeakHoursConfig> PEAK_CONFIGS = Map.of(
         "aks-primary-cluster", PeakHoursConfig.defaults(),
@@ -29,8 +42,35 @@ public class MockMetricsRepository implements MetricsRepository {
         )
     );
 
+    private final SnapshotStore snapshotStore;
+    private final String kubernetesResourceId;
+    private MetricsSnapshot kubeSnapshot;
+
+    public MockMetricsRepository(
+            SnapshotStore snapshotStore,
+            @Value("${app.mock.kubernetes-id:nginx-busy}") String kubernetesResourceId
+    ) {
+        this.snapshotStore = snapshotStore;
+        this.kubernetesResourceId = kubernetesResourceId;
+    }
+
+    @PostConstruct
+    void loadKubeSnapshot() {
+        kubeSnapshot = snapshotStore.read(kubernetesResourceId);
+        if (kubeSnapshot != null) {
+            log.info("Mock Kubernetes cluster '{}' replaying {} cached metric points from {} to {}",
+                    kubernetesResourceId, kubeSnapshot.dataPoints().size(), kubeSnapshot.start(), kubeSnapshot.end());
+        }
+    }
+
     @Override
     public List<MetricPoint> getCpuUtilization(String resourceId, Duration timeRange) {
+        List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
+        if (full != null) {
+            return full.stream()
+                    .map(p -> new MetricPoint(p.timestamp(), p.cpuUtilization(), 0, 0, resourceId, getResourceType(resourceId)))
+                    .toList();
+        }
         if ("appservice-api-gateway".equals(resourceId)) {
             return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 40.0, 40.0, 5.0);
         }
@@ -39,16 +79,33 @@ public class MockMetricsRepository implements MetricsRepository {
 
     @Override
     public List<MetricPoint> getMemoryUtilization(String resourceId, Duration timeRange) {
+        List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
+        if (full != null) {
+            return full.stream()
+                    .map(p -> new MetricPoint(p.timestamp(), 0, p.memoryUtilization(), 0, resourceId, getResourceType(resourceId)))
+                    .toList();
+        }
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 55.0, 12.0, 10.0);
     }
 
     @Override
     public List<MetricPoint> getActiveRequestCount(String resourceId, Duration timeRange) {
+        List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
+        if (full != null) {
+            return full.stream()
+                    .map(p -> new MetricPoint(p.timestamp(), 0, 0, p.activeRequestCount(), resourceId, getResourceType(resourceId)))
+                    .toList();
+        }
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 200.0, 5.0, 50.0);
     }
 
     @Override
     public List<MetricPoint> getAllMetrics(String resourceId, Duration timeRange) {
+        List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
+        if (full != null) {
+            return full;
+        }
+
         List<MetricPoint> cpu = getCpuUtilization(resourceId, timeRange);
         List<MetricPoint> mem = getMemoryUtilization(resourceId, timeRange);
         List<MetricPoint> req = getActiveRequestCount(resourceId, timeRange);
@@ -69,12 +126,7 @@ public class MockMetricsRepository implements MetricsRepository {
 
     @Override
     public List<String> getMonitoredResourceIds() {
-        return List.of(
-            "aks-primary-cluster",
-            "vm-backend-01",
-            "appservice-api-gateway",
-            "function-data-processor"
-        );
+        return List.of(kubernetesResourceId);
     }
 
     @Override
@@ -84,6 +136,19 @@ public class MockMetricsRepository implements MetricsRepository {
 
     @Override
     public CurrentConfig getCurrentConfig(String resourceId) {
+        if (kubeSnapshot != null
+                && kubernetesResourceId.equals(resourceId)
+                && kubeSnapshot.currentConfig() != null) {
+            CurrentConfig cfg = kubeSnapshot.currentConfig();
+            return new CurrentConfig(
+                resourceId,
+                cfg.replicas(), cfg.availableReplicas(),
+                cfg.cpuRequestCores(), cfg.cpuLimitCores(),
+                cfg.memoryRequestGiB(), cfg.memoryLimitGiB(),
+                cfg.nodeCount(), cfg.nodeCpuCores(),
+                true
+            );
+        }
         switch (resourceId) {
             case "aks-primary-cluster":
                 return new CurrentConfig(resourceId, 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true);
@@ -96,6 +161,67 @@ public class MockMetricsRepository implements MetricsRepository {
             default:
                 return CurrentConfig.unknown(resourceId);
         }
+    }
+
+    private List<MetricPoint> snapshotPoints(String resourceId, Duration timeRange) {
+        if (kubeSnapshot == null || !kubernetesResourceId.equals(resourceId)
+                || kubeSnapshot.dataPoints() == null || kubeSnapshot.dataPoints().isEmpty()) {
+            return null;
+        }
+        Instant end = Instant.now();
+        return samplesForRange(kubeSnapshot, end.minus(timeRange), end, resourceId);
+    }
+
+    /**
+     * Replays the snapshot's samples for an arbitrary window by tiling the snapshot's
+     * span (most recent copy first) and returning points falling inside the window,
+     * downsampled to the step cadence of the requested range. Exposed as static so
+     * the propagation logic is unit-testable.
+     */
+    static List<MetricPoint> samplesForRange(MetricsSnapshot snapshot, Instant start, Instant end, String resourceId) {
+        List<MetricsSnapshot.Point> points = snapshot.dataPoints();
+        if (points == null || points.isEmpty()) {
+            return List.of();
+        }
+
+        Instant first = Instant.parse(points.get(0).timestamp());
+        Instant last = Instant.parse(points.get(points.size() - 1).timestamp());
+        long step = stepSecondsForRange(Duration.between(start, end));
+        long spanSeconds = Math.max(Duration.between(first, last).getSeconds()
+                + (snapshot.stepSeconds() != null && snapshot.stepSeconds() > 0 ? snapshot.stepSeconds() : 60), step);
+
+        long windowSeconds = Duration.between(start, end).getSeconds();
+        long copies = Math.max(windowSeconds / spanSeconds + 1, 1);
+        String resourceType = snapshot.resourceType();
+
+        List<MetricPoint> result = new ArrayList<>();
+        for (long copy = copies - 1; copy >= 0; copy--) {
+            long offsetSeconds = copy * spanSeconds;
+            long lastBucket = -1;
+            for (MetricsSnapshot.Point p : points) {
+                Instant ts = Instant.parse(p.timestamp()).minusSeconds(offsetSeconds);
+                if (ts.isBefore(start) || ts.isAfter(end)) {
+                    continue;
+                }
+                long bucket = ts.getEpochSecond() / step;
+                if (bucket == lastBucket) {
+                    continue;
+                }
+                lastBucket = bucket;
+                result.add(new MetricPoint(
+                    ts, p.cpuUtilization(), p.memoryUtilization(), p.activeRequestCount(),
+                    resourceId, resourceType
+                ));
+            }
+        }
+        return result;
+    }
+
+    private static long stepSecondsForRange(Duration range) {
+        long seconds = range.getSeconds();
+        if (seconds < 3600) return 60;
+        if (seconds < 3 * 86400) return 300;
+        return 3600;
     }
 
     private List<MetricPoint> generateSineWaveMetrics(
@@ -135,6 +261,7 @@ public class MockMetricsRepository implements MetricsRepository {
     }
 
     private String getResourceType(String resourceId) {
+        if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
         if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
         if (resourceId.startsWith("vm")) return "AZURE_VM";
         if (resourceId.startsWith("app")) return "APP_SERVICE";

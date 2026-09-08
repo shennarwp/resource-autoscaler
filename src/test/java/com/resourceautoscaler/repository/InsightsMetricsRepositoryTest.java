@@ -22,6 +22,18 @@ class InsightsMetricsRepositoryTest {
     }
 
     @Test
+    void exportQueryBindsExplicitExactWindowWithSixtySecondStep() {
+        String query = InsightsMetricsRepository.buildExportQuery(
+                "nginx-busy", "2026-09-08T05:00:00Z", "2026-09-08T09:00:00Z", 60, "default");
+
+        assertTrue(query.contains("TimeGenerated between (datetime(2026-09-08T05:00:00Z) .. datetime(2026-09-08T09:00:00Z))"));
+        assertTrue(query.contains("where Name startswith 'nginx-busy-'"));
+        assertTrue(query.contains("CounterName in ('cpuUsageNanoCores','cpuLimitNanoCores','memoryWorkingSetBytes','memoryLimitBytes')"));
+        assertTrue(query.contains("by bin(TimeGenerated, 60s)"));
+        assertFalse(query.contains("ago("));
+    }
+
+    @Test
     void configRowMapsNanocoresAndBytesToCoresAndGiB() {
         CurrentConfig config = InsightsMetricsRepository.currentConfigFromValues(
             "nginx-busy",
