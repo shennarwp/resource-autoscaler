@@ -2,6 +2,7 @@ package com.resourceautoscaler.controller;
 
 import com.resourceautoscaler.dto.RecommendationRequest;
 import com.resourceautoscaler.dto.RecommendationResponse;
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
@@ -42,8 +43,10 @@ public class RecommendationsController {
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);
         PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
-        double currentMonthlyCost = costEstimateService.estimateMonthlyCost(metrics.resourceType());
-        List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(metrics, config, currentMonthlyCost);
+        CurrentConfig currentConfig = metricsService.getCurrentConfig(resourceId);
+        double currentMonthlyCost = costEstimateService.estimateMonthlyCost(currentConfig, metrics.resourceType());
+        List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(
+            metrics, config, currentMonthlyCost, currentConfig);
         return ResponseEntity.ok(recs);
     }
 
@@ -52,6 +55,7 @@ public class RecommendationsController {
             @RequestBody RecommendationRequest request
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(request.resourceId(), 30);
+        CurrentConfig currentConfig = metricsService.getCurrentConfig(request.resourceId());
         PeakHoursConfig baseConfig = metricsService.getPeakHoursConfig(request.resourceId());
         PeakHoursConfig config = new PeakHoursConfig(
             request.peakStart() != null ? request.peakStart() : baseConfig.peakStart(),
@@ -67,7 +71,8 @@ public class RecommendationsController {
             config,
             request.currentMonthlyCostUsd() > 0
                 ? request.currentMonthlyCostUsd()
-                : costEstimateService.estimateMonthlyCost(metrics.resourceType())
+                : costEstimateService.estimateMonthlyCost(currentConfig, metrics.resourceType()),
+            currentConfig
         );
 
         if (recs.isEmpty()) {

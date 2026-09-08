@@ -1,6 +1,7 @@
 package com.resourceautoscaler.service;
 
 import com.resourceautoscaler.model.CostAnalysis;
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
@@ -55,8 +56,11 @@ class CostOptimizationServiceTest {
         when(metricsService.getMonitoredResources()).thenReturn(List.of("aks-primary-cluster"));
         when(metricsService.collectMetrics("aks-primary-cluster", 30.0)).thenReturn(metrics);
         when(metricsService.getPeakHoursConfig("aks-primary-cluster")).thenReturn(functionConfig);
-        when(costEstimateService.estimateMonthlyCost("AKS_CLUSTER")).thenReturn(2400.0);
-        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of(rec));
+        when(metricsService.getCurrentConfig("aks-primary-cluster"))
+            .thenReturn(new CurrentConfig("aks-primary-cluster", 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true));
+        when(costEstimateService.estimateMonthlyCost(any(CurrentConfig.class), org.mockito.ArgumentMatchers.eq("AKS_CLUSTER")))
+            .thenReturn(2400.0);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble(), any())).thenReturn(List.of(rec));
 
         CostAnalysis analysis = service.generateCostAnalysis();
 
@@ -69,7 +73,7 @@ class CostOptimizationServiceTest {
 
         ArgumentCaptor<PeakHoursConfig> configCaptor = ArgumentCaptor.forClass(PeakHoursConfig.class);
         verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
-            configCaptor.capture(), org.mockito.ArgumentMatchers.eq(2400.0));
+            configCaptor.capture(), org.mockito.ArgumentMatchers.eq(2400.0), any());
         assertEquals(functionConfig, configCaptor.getValue());
     }
 }

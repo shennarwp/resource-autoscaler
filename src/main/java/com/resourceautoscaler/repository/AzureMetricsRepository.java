@@ -11,6 +11,7 @@ import com.azure.monitor.query.models.MetricsQueryOptions;
 import com.azure.monitor.query.models.MetricsQueryResult;
 import com.azure.monitor.query.models.QueryTimeInterval;
 import com.azure.monitor.query.models.TimeSeriesElement;
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import org.springframework.beans.factory.annotation.Value;
@@ -124,6 +125,11 @@ public class AzureMetricsRepository implements MetricsRepository {
     @Override
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return PeakHoursConfig.defaults();
+    }
+
+    @Override
+    public CurrentConfig getCurrentConfig(String resourceId) {
+        return CurrentConfig.unknown(resourceId);
     }
 
     private List<MetricPoint> queryMetric(String resourceId, Duration timeRange, String metricName) {

@@ -1,6 +1,7 @@
 package com.resourceautoscaler.service;
 
 import com.resourceautoscaler.model.CostAnalysis;
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
@@ -39,9 +40,11 @@ public class CostOptimizationService {
         for (String resourceId : resources) {
             ResourceMetrics metrics = metricsService.collectMetrics(resourceId, 30);
             PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
+            CurrentConfig currentConfig = metricsService.getCurrentConfig(resourceId);
 
-            double monthlyCost = costEstimateService.estimateMonthlyCost(metrics.resourceType());
-            List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(metrics, config, monthlyCost);
+            double monthlyCost = costEstimateService.estimateMonthlyCost(currentConfig, metrics.resourceType());
+            List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(
+                metrics, config, monthlyCost, currentConfig);
 
             double optimizedCost = monthlyCost;
             List<String> optimizations = new ArrayList<>();
