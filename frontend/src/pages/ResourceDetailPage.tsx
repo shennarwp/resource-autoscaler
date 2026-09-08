@@ -79,13 +79,25 @@ interface DataPoint {
   requests: number;
 }
 
-function computeLabelTimes(minT: number, maxT: number, everyMinutes: number): number[] {
-  const step = everyMinutes * 60 * 1000;
+// Candidate label steps (ms) aligned to clock boundaries, used when the data
+// span is too short for the range's configured cadence to produce readable labels.
+const NICE_STEP_MS = [
+  60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000,
+  3_600_000, 7_200_000, 10_800_000, 21_600_000, 43_200_000,
+  86_400_000, 172_800_000, 432_000_000,
+];
+
+function computeLabelTimes(minT: number, maxT: number, stepMs: number): number[] {
   const times: number[] = [];
-  for (let t = Math.floor(minT / step) * step; t <= maxT; t += step) {
+  for (let t = Math.floor(minT / stepMs) * stepMs; t <= maxT; t += stepMs) {
     if (t >= minT) times.push(t);
   }
   return times;
+}
+
+function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
+  if (spanMs / rangeStepMs >= 4) return rangeStepMs;
+  return NICE_STEP_MS.find((s) => s >= spanMs / 8) ?? NICE_STEP_MS[NICE_STEP_MS.length - 1];
 }
 
 function tickFormatter(value: number): string {
@@ -119,7 +131,8 @@ export default function ResourceDetailPage() {
     if (chartData.length === 0) return [];
     const minT = chartData[0].t;
     const maxT = chartData[chartData.length - 1].t;
-    return computeLabelTimes(minT, maxT, labelEvery);
+    const rangeStepMs = labelEvery * 60 * 1000;
+    return computeLabelTimes(minT, maxT, effectiveLabelStepMs(maxT - minT, rangeStepMs));
   }, [chartData, labelEvery]);
 
   if (metricsLoading && !metrics) return <div className="loading">Loading metrics...</div>;
