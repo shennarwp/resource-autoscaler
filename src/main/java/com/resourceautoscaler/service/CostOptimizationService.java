@@ -35,10 +35,7 @@ public class CostOptimizationService {
 
         for (String resourceId : resources) {
             ResourceMetrics metrics = metricsService.collectMetrics(resourceId, 30);
-            PeakHoursConfig config = new PeakHoursConfig(
-                java.time.LocalTime.of(7, 0), java.time.LocalTime.of(18, 0),
-                List.of(1, 2, 3, 4, 5), 65.0, 10.0, 15
-            );
+            PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
 
             double monthlyCost = estimateMonthlyCost(metrics.resourceType());
             List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(metrics, config, monthlyCost);
