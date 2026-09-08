@@ -8,6 +8,7 @@ export default function GenerateCodePage() {
   const [result, setResult] = useState<RecommendationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noRecommendation, setNoRecommendation] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'keda' | 'terraform'>('keda');
 
@@ -17,11 +18,18 @@ export default function GenerateCodePage() {
   const activeCode = activeTab === 'keda' ? result?.kedaYaml : result?.terraformHcl;
 
   useEffect(() => {
-    if (!resourceId || result) return;
+    if (!resourceId) return;
     setLoading(true);
+    setError(null);
+    setNoRecommendation(false);
     recommendationsApi
       .generateCode(resourceId)
       .then((res) => {
+        if (!res) {
+          setResult(null);
+          setNoRecommendation(true);
+          return;
+        }
         setResult(res);
         setActiveTab(res.kedaYaml ? 'keda' : 'terraform');
       })
@@ -38,6 +46,19 @@ export default function GenerateCodePage() {
       {loading && <div className="loading">Generating code...</div>}
 
       {error && <div className="error">{error}</div>}
+
+      {noRecommendation && !loading && !error && (
+        <div className="empty-state">
+          <p>No active recommendation for this resource.</p>
+          <p>
+            Scaling code is generated from an active recommendation, which requires off-peak
+            utilization below target and peak utilization above target over the analyzed period.
+          </p>
+          <Link to={`/resources/${resourceId}`} className="btn btn-primary">
+            Back to Resource
+          </Link>
+        </div>
+      )}
 
       {result && (
         <div className="code-generation-result">

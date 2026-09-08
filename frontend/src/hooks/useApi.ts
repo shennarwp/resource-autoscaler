@@ -17,7 +17,7 @@ export function useMetrics(resourceId: string | null, days = 30) {
       .finally(() => setLoading(false));
   }, [resourceId, days]);
 
-  return { metrics, loading: loading && !metrics, error };
+  return { metrics, loading: loading && !metrics, refreshing: loading && !!metrics, error };
 }
 
 export function useCostAnalysis() {
@@ -34,7 +34,7 @@ export function useCostAnalysis() {
       .finally(() => setLoading(false));
   }, []);
 
-  return { analysis, loading: loading && !analysis, error };
+  return { analysis, loading: loading && !analysis, refreshing: loading && !!analysis, error };
 }
 
 export function useRecommendations(resourceId: string | null, days = 30) {
@@ -52,5 +52,5 @@ export function useRecommendations(resourceId: string | null, days = 30) {
       .finally(() => setLoading(false));
   }, [resourceId, days]);
 
-  return { recommendations, loading: loading && recommendations.length === 0, error };
+  return { recommendations, loading: loading && recommendations.length === 0, refreshing: loading && recommendations.length > 0, error };
 }

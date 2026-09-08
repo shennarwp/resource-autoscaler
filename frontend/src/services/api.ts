@@ -25,13 +25,9 @@ export const metricsApi = {
 };
 
 export const recommendationsApi = {
-  getRecommendations: async (
-    resourceId: string,
-    days = 30,
-    currentMonthlyCost = 560.0
-  ): Promise<ScalingRecommendation[]> => {
+  getRecommendations: async (resourceId: string, days = 30): Promise<ScalingRecommendation[]> => {
     const { data } = await api.get<ScalingRecommendation[]>(`/recommendations/${resourceId}`, {
-      params: { days, currentMonthlyCost },
+      params: { days },
     });
     return data;
   },
@@ -40,13 +36,13 @@ export const recommendationsApi = {
     resourceId: string,
     peakStart = '07:00',
     peakEnd = '18:00',
-    currentMonthlyCost = 560.0
+    currentMonthlyCostUsd = 0
   ): Promise<RecommendationResponse> => {
     const { data } = await api.post<RecommendationResponse>('/recommendations/generate', {
       resourceId,
       peakStart,
       peakEnd,
-      currentMonthlyCostUsd: currentMonthlyCost,
+      currentMonthlyCostUsd,
     });
     return data;
   },

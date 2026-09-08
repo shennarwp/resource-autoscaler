@@ -37,6 +37,13 @@ public class CodeGenerationService {
                 - type: cron
                   metadata:
                     timezone: UTC
+                    start: "%s"
+                    end: "%s"
+                    desiredReplicas: "1"
+                    days: "Monday,Tuesday,Wednesday,Thursday,Friday"
+                - type: cron
+                  metadata:
+                    timezone: UTC
                     start: "00:00"
                     end: "23:59"
                     desiredReplicas: "1"
@@ -51,7 +58,9 @@ public class CodeGenerationService {
                 recommendation.resourceName().toLowerCase().replace(" ", "-"),
                 recommendation.resourceName().toLowerCase().replace(" ", "-"),
                 peakStart,
-                peakEnd
+                peakEnd,
+                peakEnd,
+                peakStart
             );
     }
 

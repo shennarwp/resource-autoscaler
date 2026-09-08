@@ -6,6 +6,7 @@ import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import com.resourceautoscaler.service.AnalysisService;
 import com.resourceautoscaler.service.CodeGenerationService;
+import com.resourceautoscaler.service.CostEstimateService;
 import com.resourceautoscaler.service.MetricsCollectionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -33,20 +34,47 @@ class RecommendationsControllerTest {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
         AnalysisService analysisService = mock(AnalysisService.class);
         CodeGenerationService codeGenerationService = mock(CodeGenerationService.class);
+        CostEstimateService costEstimateService = mock(CostEstimateService.class);
         RecommendationsController controller =
-            new RecommendationsController(metricsService, analysisService, codeGenerationService);
+            new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
 
         ResourceMetrics metrics = sampleMetrics("function-data-processor", "AZURE_FUNCTION");
         when(metricsService.collectMetrics("function-data-processor", 30.0)).thenReturn(metrics);
         when(metricsService.getPeakHoursConfig("function-data-processor")).thenReturn(functionConfig);
+        when(costEstimateService.estimateMonthlyCost("AZURE_FUNCTION")).thenReturn(120.0);
         when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of());
 
-        controller.getRecommendations("function-data-processor", 30.0, 560.0);
+        controller.getRecommendations("function-data-processor", 30.0);
 
         ArgumentCaptor<PeakHoursConfig> configCaptor = ArgumentCaptor.forClass(PeakHoursConfig.class);
+        ArgumentCaptor<Double> costCaptor = ArgumentCaptor.forClass(Double.class);
         verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
-            configCaptor.capture(), org.mockito.ArgumentMatchers.eq(560.0));
+            configCaptor.capture(), costCaptor.capture());
         assertEquals(functionConfig, configCaptor.getValue());
+        assertEquals(120.0, costCaptor.getValue(), 0.001);
+    }
+
+    @Test
+    void kubernetesClusterRecommendationsEstimateCostFromResourceType() {
+        MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
+        AnalysisService analysisService = mock(AnalysisService.class);
+        CodeGenerationService codeGenerationService = mock(CodeGenerationService.class);
+        CostEstimateService costEstimateService = mock(CostEstimateService.class);
+        RecommendationsController controller =
+            new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
+
+        ResourceMetrics metrics = sampleMetrics("nginx-busy", "K8S_CLUSTER");
+        when(metricsService.collectMetrics("nginx-busy", 30.0)).thenReturn(metrics);
+        when(metricsService.getPeakHoursConfig("nginx-busy")).thenReturn(PeakHoursConfig.defaults());
+        when(costEstimateService.estimateMonthlyCost("K8S_CLUSTER")).thenReturn(2400.0);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of());
+
+        controller.getRecommendations("nginx-busy", 30.0);
+
+        ArgumentCaptor<Double> costCaptor = ArgumentCaptor.forClass(Double.class);
+        verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
+            any(), costCaptor.capture());
+        assertEquals(2400.0, costCaptor.getValue(), 0.001);
     }
 
     private ResourceMetrics sampleMetrics(String resourceId, String resourceType) {
