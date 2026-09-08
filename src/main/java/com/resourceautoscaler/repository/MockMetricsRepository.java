@@ -91,7 +91,7 @@ public class MockMetricsRepository implements MetricsRepository {
         List<MetricPoint> points = new ArrayList<>();
 
         long totalSeconds = timeRange.getSeconds();
-        long interval = 3600;
+        long interval = totalSeconds < 3600 ? 60 : 3600;
 
         for (Instant t = start; !t.isAfter(end); t = t.plusSeconds(interval)) {
             java.time.ZonedDateTime zdt = t.atZone(java.time.ZoneId.of("UTC"));

@@ -35,7 +35,7 @@ public class RecommendationsController {
     @GetMapping("/{resourceId}")
     public ResponseEntity<List<ScalingRecommendation>> getRecommendations(
             @PathVariable String resourceId,
-            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(defaultValue = "30") double days,
             @RequestParam(defaultValue = "560.00") double currentMonthlyCost
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);

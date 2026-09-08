@@ -27,7 +27,7 @@ public class MetricsController {
     @GetMapping("/{resourceId}")
     public ResponseEntity<MetricsResponse> getResourceMetrics(
             @PathVariable String resourceId,
-            @RequestParam(defaultValue = "30") int days
+            @RequestParam(defaultValue = "30") double days
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);
         PeakHoursConfig config = new PeakHoursConfig(
