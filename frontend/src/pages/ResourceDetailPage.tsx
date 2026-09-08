@@ -127,13 +127,19 @@ export default function ResourceDetailPage() {
     return points;
   }, [metrics]);
 
+  const axisDomain = useMemo(() => {
+    if (chartData.length === 0) return [0, 1] as [number, number];
+    const maxT = chartData[chartData.length - 1].t;
+    const rangeMs = selectedDays * 86_400_000;
+    return [maxT - rangeMs, maxT] as [number, number];
+  }, [chartData, selectedDays]);
+
   const labelTimes = useMemo(() => {
     if (chartData.length === 0) return [];
-    const minT = chartData[0].t;
-    const maxT = chartData[chartData.length - 1].t;
+    const [minT, maxT] = axisDomain;
     const rangeStepMs = labelEvery * 60 * 1000;
     return computeLabelTimes(minT, maxT, effectiveLabelStepMs(maxT - minT, rangeStepMs));
-  }, [chartData, labelEvery]);
+  }, [axisDomain, labelEvery, chartData.length]);
 
   if (metricsLoading && !metrics) return <div className="loading">Loading metrics...</div>;
   if (!metrics) return <div className="error">Resource not found</div>;
@@ -184,7 +190,7 @@ export default function ResourceDetailPage() {
               dataKey="t"
               type="number"
               scale="time"
-              domain={['dataMin', 'dataMax']}
+              domain={axisDomain}
               ticks={labelTimes}
               tickFormatter={tickFormatter}
               tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
@@ -207,7 +213,7 @@ export default function ResourceDetailPage() {
               dataKey="t"
               type="number"
               scale="time"
-              domain={['dataMin', 'dataMax']}
+              domain={axisDomain}
               ticks={labelTimes}
               tickFormatter={tickFormatter}
               tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
