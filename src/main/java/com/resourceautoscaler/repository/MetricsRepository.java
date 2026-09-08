@@ -1,5 +1,6 @@
 package com.resourceautoscaler.repository;
 
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 
@@ -19,4 +20,6 @@ public interface MetricsRepository {
     List<String> getMonitoredResourceIds();
 
     PeakHoursConfig getPeakHoursConfig(String resourceId);
+
+    CurrentConfig getCurrentConfig(String resourceId);
 }

@@ -1,5 +1,6 @@
 package com.resourceautoscaler.service;
 
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
@@ -17,7 +18,8 @@ public class AnalysisService {
     public List<ScalingRecommendation> analyzeAndRecommend(
             ResourceMetrics metrics,
             PeakHoursConfig config,
-            double currentMonthlyCostUsd
+            double currentMonthlyCostUsd,
+            CurrentConfig currentConfig
     ) {
         List<ScalingRecommendation> recommendations = new ArrayList<>();
 
@@ -32,8 +34,8 @@ public class AnalysisService {
 
             ScalingRecommendation.RecommendationType recType = determineRecommendationType(metrics.resourceType());
 
-            String currentConfig = describeCurrentConfig(metrics.resourceType());
-            String recommendedConfig = describeRecommendedConfig(metrics.resourceType(), config);
+            String currentConfigText = describeCurrentConfig(metrics.resourceType(), currentConfig);
+            String recommendedConfig = describeRecommendedConfig(metrics.resourceType(), config, currentConfig);
 
             double confidence = calculateConfidenceScore(stats, config);
 
@@ -42,7 +44,7 @@ public class AnalysisService {
                 metrics.resourceName(),
                 mapResourceType(metrics.resourceType()),
                 recType,
-                currentConfig,
+                currentConfigText,
                 recommendedConfig,
                 config.peakStart() + " - " + config.peakEnd(),
                 config.peakEnd() + " - " + config.peakStart(),
@@ -111,9 +113,9 @@ public class AnalysisService {
         };
     }
 
-    private String describeCurrentConfig(String resourceType) {
+    private String describeCurrentConfig(String resourceType, CurrentConfig currentConfig) {
         return switch (resourceType) {
-            case "AKS_CLUSTER", "K8S_CLUSTER" -> "3 replicas, 2 CPU / 4Gi memory, running 24/7";
+            case "AKS_CLUSTER", "K8S_CLUSTER" -> describeClusterConfig(currentConfig);
             case "AZURE_VM" -> "Standard_D4s_v3 (4 vCPU, 16 GiB), always on";
             case "APP_SERVICE" -> "Standard S3 tier, always running";
             case "AZURE_FUNCTION" -> "Consumption plan, always warm";
@@ -121,10 +123,53 @@ public class AnalysisService {
         };
     }
 
-    private String describeRecommendedConfig(String resourceType, PeakHoursConfig config) {
+    private String describeClusterConfig(CurrentConfig currentConfig) {
+        if (currentConfig == null || !currentConfig.available() || currentConfig.replicas() <= 0) {
+            return "No cluster config discovered (deployment replica/limit metrics not found in Container Insights)";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(currentConfig.replicas())
+          .append(" replica").append(currentConfig.replicas() == 1 ? "" : "s")
+          .append(" (").append(currentConfig.availableReplicas()).append(" available)");
+
+        if (currentConfig.cpuRequestCores() > 0 || currentConfig.cpuLimitCores() > 0) {
+            sb.append(", ").append(cpuFormat(currentConfig.cpuRequestCores()))
+              .append(" CPU req / ").append(cpuFormat(currentConfig.cpuLimitCores()))
+              .append(" limit per pod");
+        }
+        if (currentConfig.memoryRequestGiB() > 0 || currentConfig.memoryLimitGiB() > 0) {
+            sb.append(", ").append(memoryFormat(currentConfig.memoryRequestGiB()))
+              .append("/").append(memoryFormat(currentConfig.memoryLimitGiB()))
+              .append(" mem per pod");
+        }
+        if (currentConfig.nodeCount() > 0) {
+            sb.append(", ").append(currentConfig.nodeCount())
+              .append(" node").append(currentConfig.nodeCount() == 1 ? "" : "s")
+              .append(", ").append(cpuFormat(currentConfig.nodeCpuCores())).append(" total");
+        }
+        sb.append(", running 24/7");
+        return sb.toString();
+    }
+
+    private String cpuFormat(double cores) {
+        if (cores >= 1.0) {
+            return String.format("%.1f", cores);
+        }
+        return String.format("%.0fm", cores * 1000);
+    }
+
+    private String memoryFormat(double gib) {
+        if (gib >= 1.0) {
+            return String.format("%.0fGi", gib);
+        }
+        return String.format("%.0fMi", gib * 1024);
+    }
+
+    private String describeRecommendedConfig(String resourceType, PeakHoursConfig config, CurrentConfig currentConfig) {
         return switch (resourceType) {
             case "AKS_CLUSTER", "K8S_CLUSTER" ->
-                "KEDA ScaledObject: 3 replicas " + config.peakStart() + "-" + config.peakEnd() +
+                "KEDA ScaledObject: " + peakReplicas(currentConfig) + " replicas " + config.peakStart() + "-" + config.peakEnd() +
                 ", 1 replica " + config.peakEnd() + "-" + config.peakStart();
             case "AZURE_VM" ->
                 "Terraform azurerm_monitor_autoscale: D4s_v3 " + config.peakStart() + "-" + config.peakEnd() +
@@ -136,6 +181,13 @@ public class AnalysisService {
                 "Pre-warm " + config.peakStart() + ", scale to 0 " + config.peakEnd();
             default -> "Apply schedule-based scaling";
         };
+    }
+
+    private int peakReplicas(CurrentConfig currentConfig) {
+        if (currentConfig != null && currentConfig.available() && currentConfig.replicas() > 0) {
+            return currentConfig.replicas();
+        }
+        return 3;
     }
 
     private String generateRationale(

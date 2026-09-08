@@ -1,5 +1,6 @@
 package com.resourceautoscaler.repository;
 
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import org.springframework.context.annotation.Profile;
@@ -79,6 +80,22 @@ public class MockMetricsRepository implements MetricsRepository {
     @Override
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return PEAK_CONFIGS.getOrDefault(resourceId, PeakHoursConfig.defaults());
+    }
+
+    @Override
+    public CurrentConfig getCurrentConfig(String resourceId) {
+        switch (resourceId) {
+            case "aks-primary-cluster":
+                return new CurrentConfig(resourceId, 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true);
+            case "vm-backend-01":
+                return new CurrentConfig(resourceId, 1, 1, 4.0, 4.0, 8.0, 16.0, 1, 4.0, true);
+            case "appservice-api-gateway":
+                return new CurrentConfig(resourceId, 1, 1, 0.75, 1.75, 1.0, 3.5, 0, 0, true);
+            case "function-data-processor":
+                return new CurrentConfig(resourceId, 1, 1, 0.25, 0.5, 0.5, 1.0, 0, 0, true);
+            default:
+                return CurrentConfig.unknown(resourceId);
+        }
     }
 
     private List<MetricPoint> generateSineWaveMetrics(

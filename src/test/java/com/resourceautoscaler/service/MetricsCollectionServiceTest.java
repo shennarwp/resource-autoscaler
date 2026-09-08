@@ -1,5 +1,6 @@
 package com.resourceautoscaler.service;
 
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
@@ -161,5 +162,16 @@ class MetricsCollectionServiceTest {
         return new MetricPoint(
             Instant.parse(iso), 0, 0, 0, "aks-primary-cluster", "AKS_CLUSTER"
         );
+    }
+
+    @Test
+    void exposesCurrentConfigFromRepository() {
+        MetricsRepository repo = mock(MetricsRepository.class);
+        CurrentConfig expected = new CurrentConfig("nginx-busy", 3, 3, 0.025, 0.150, 0.008, 0.032, 1, 4.0, true);
+        when(repo.getCurrentConfig("nginx-busy")).thenReturn(expected);
+
+        MetricsCollectionService service = new MetricsCollectionService(repo);
+
+        assertEquals(expected, service.getCurrentConfig("nginx-busy"));
     }
 }

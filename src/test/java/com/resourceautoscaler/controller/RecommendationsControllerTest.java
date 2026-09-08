@@ -1,5 +1,6 @@
 package com.resourceautoscaler.controller;
 
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
@@ -41,15 +42,18 @@ class RecommendationsControllerTest {
         ResourceMetrics metrics = sampleMetrics("function-data-processor", "AZURE_FUNCTION");
         when(metricsService.collectMetrics("function-data-processor", 30.0)).thenReturn(metrics);
         when(metricsService.getPeakHoursConfig("function-data-processor")).thenReturn(functionConfig);
-        when(costEstimateService.estimateMonthlyCost("AZURE_FUNCTION")).thenReturn(120.0);
-        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of());
+        when(metricsService.getCurrentConfig("function-data-processor"))
+            .thenReturn(CurrentConfig.unknown("function-data-processor"));
+        when(costEstimateService.estimateMonthlyCost(any(CurrentConfig.class), org.mockito.ArgumentMatchers.eq("AZURE_FUNCTION")))
+            .thenReturn(120.0);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble(), any())).thenReturn(List.of());
 
         controller.getRecommendations("function-data-processor", 30.0);
 
         ArgumentCaptor<PeakHoursConfig> configCaptor = ArgumentCaptor.forClass(PeakHoursConfig.class);
         ArgumentCaptor<Double> costCaptor = ArgumentCaptor.forClass(Double.class);
         verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
-            configCaptor.capture(), costCaptor.capture());
+            configCaptor.capture(), costCaptor.capture(), any());
         assertEquals(functionConfig, configCaptor.getValue());
         assertEquals(120.0, costCaptor.getValue(), 0.001);
     }
@@ -63,18 +67,21 @@ class RecommendationsControllerTest {
         RecommendationsController controller =
             new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
 
+        CurrentConfig k8sConfig = new CurrentConfig("nginx-busy", 3, 3, 0.025, 0.150, 0.008, 0.032, 1, 4.0, true);
         ResourceMetrics metrics = sampleMetrics("nginx-busy", "K8S_CLUSTER");
         when(metricsService.collectMetrics("nginx-busy", 30.0)).thenReturn(metrics);
         when(metricsService.getPeakHoursConfig("nginx-busy")).thenReturn(PeakHoursConfig.defaults());
-        when(costEstimateService.estimateMonthlyCost("K8S_CLUSTER")).thenReturn(2400.0);
-        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of());
+        when(metricsService.getCurrentConfig("nginx-busy")).thenReturn(k8sConfig);
+        when(costEstimateService.estimateMonthlyCost(any(CurrentConfig.class), org.mockito.ArgumentMatchers.eq("K8S_CLUSTER")))
+            .thenReturn(525.6);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble(), any())).thenReturn(List.of());
 
         controller.getRecommendations("nginx-busy", 30.0);
 
         ArgumentCaptor<Double> costCaptor = ArgumentCaptor.forClass(Double.class);
         verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
-            any(), costCaptor.capture());
-        assertEquals(2400.0, costCaptor.getValue(), 0.001);
+            any(), costCaptor.capture(), any());
+        assertEquals(525.6, costCaptor.getValue(), 0.001);
     }
 
     private ResourceMetrics sampleMetrics(String resourceId, String resourceType) {

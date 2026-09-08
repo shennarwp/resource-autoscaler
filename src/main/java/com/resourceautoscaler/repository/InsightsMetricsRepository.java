@@ -7,6 +7,7 @@ import com.azure.monitor.query.models.LogsQueryResult;
 import com.azure.monitor.query.models.LogsQueryResultStatus;
 import com.azure.monitor.query.models.LogsTableRow;
 import com.azure.monitor.query.models.QueryTimeInterval;
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import jakarta.annotation.PostConstruct;
@@ -42,6 +43,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
     private static final Logger log = LoggerFactory.getLogger(InsightsMetricsRepository.class);
 
     private static final String POD_NAMESPACE = "default";
+    private static final Duration CONFIG_LOOKBACK = Duration.ofDays(1);
     private static final String COUNTERS =
         "('cpuUsageNanoCores','cpuLimitNanoCores','memoryWorkingSetBytes','memoryLimitBytes')";
 
@@ -102,6 +104,121 @@ public class InsightsMetricsRepository implements MetricsRepository {
     @Override
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return PeakHoursConfig.defaults();
+    }
+
+    @Override
+    public CurrentConfig getCurrentConfig(String resourceId) {
+        String range = timespan(CONFIG_LOOKBACK);
+        String query = buildConfigQuery(resourceId, range, POD_NAMESPACE);
+
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        QueryTimeInterval interval = new QueryTimeInterval(now.minus(CONFIG_LOOKBACK), now);
+
+        try {
+            LogsQueryResult result = logsClient.queryWorkspace(workspaceId, query, interval);
+            if (result == null
+                    || result.getQueryResultStatus() == LogsQueryResultStatus.FAILURE
+                    || result.getTable() == null
+                    || result.getTable().getRows().isEmpty()) {
+                log.warn("Container Insights config query for {} found no deployment row", resourceId);
+                return CurrentConfig.unknown(resourceId);
+            }
+
+            LogsTableRow row = result.getTable().getRows().getFirst();
+            return currentConfigFromValues(
+                resourceId,
+                column(row, "spec"),
+                column(row, "avail"),
+                column(row, "cpuReq"),
+                column(row, "cpuLim"),
+                column(row, "memReq"),
+                column(row, "memLim"),
+                column(row, "nodeCount"),
+                column(row, "cpuCores")
+            );
+        } catch (RuntimeException e) {
+            log.error("Container Insights config query failed for resource {}", resourceId, e);
+            return CurrentConfig.unknown(resourceId);
+        }
+    }
+
+    /**
+     * Discovers the deployment's current configuration from Container Insights:
+     * desired/available replicas (KubeDeployment metric), per-container resource
+     * requests and limits (K8SContainer counters) and total cluster CPU capacity
+     * (K8SNode counters). Returns a single row; a {@code leftouter} join keeps it
+     * even where the container/node series are missing for a fresh deployment.
+     */
+    static String buildConfigQuery(String resourceId, String range, String namespace) {
+        return """
+            let start = ago(%s);
+            let deployments = InsightsMetrics
+            | where TimeGenerated > start
+            | where Name == 'kube_deployment_status_replicas_ready'
+            | extend tags = todynamic(Tags)
+            | where tostring(tags.k8sNamespace) == '%s'
+            | where tostring(tags.deployment) == '%s'
+            | summarize arg_max(TimeGenerated, tags) by _key = 1
+            | extend spec = toint(tags.spec_replicas), avail = toint(tags.status_replicas_available)
+            | project spec, avail, _key;
+            let pods = KubePodInventory
+            | where TimeGenerated > start
+            | where Namespace == '%s'
+            | where Name startswith '%s-'
+            | project PodUid = tostring(PodUid), _key = 1;
+            let containers = Perf
+            | where TimeGenerated > start
+            | where ObjectName == 'K8SContainer'
+            | where CounterName in ('cpuRequestNanoCores','cpuLimitNanoCores','memoryRequestBytes','memoryLimitBytes')
+            | extend PodUid = tostring(split(InstanceName,'/')[-2])
+            | join kind=inner (pods) on PodUid
+            | summarize
+                cpuReq = max(case(CounterName=='cpuRequestNanoCores', CounterValue, 0.0)),
+                cpuLim = max(case(CounterName=='cpuLimitNanoCores', CounterValue, 0.0)),
+                memReq = max(case(CounterName=='memoryRequestBytes', CounterValue, 0.0)),
+                memLim = max(case(CounterName=='memoryLimitBytes', CounterValue, 0.0))
+              by _key = 1;
+            let nodes = Perf
+            | where TimeGenerated > start
+            | where ObjectName == 'K8SNode'
+            | where CounterName == 'cpuCapacityNanoCores'
+            | summarize c = arg_max(TimeGenerated, CounterValue) by Computer
+            | summarize nodeCount = count(), cpuCores = sum(c) by _key = 1;
+            deployments
+            | join kind=leftouter (containers) on _key
+            | join kind=leftouter (nodes) on _key
+            | project spec, avail, cpuReq, cpuLim, memReq, memLim, nodeCount, cpuCores
+            """.formatted(range, namespace, resourceId, namespace, resourceId);
+    }
+
+    static CurrentConfig currentConfigFromValues(
+            String resourceId,
+            Double spec, Double avail, Double cpuReq, Double cpuLim,
+            Double memReq, Double memLim, Double nodeCount, Double cpuCores
+    ) {
+        if (spec == null) {
+            return CurrentConfig.unknown(resourceId);
+        }
+        double requestCores = cpuReq != null ? cpuReq / 1e9 : 0.0;
+        double limitCores = cpuLim != null ? cpuLim / 1e9 : 0.0;
+        double requestGiB = memReq != null ? memReq / (1024.0 * 1024.0 * 1024.0) : 0.0;
+        double limitGiB = memLim != null ? memLim / (1024.0 * 1024.0 * 1024.0) : 0.0;
+        return new CurrentConfig(
+            resourceId,
+            (int) Math.round(spec),
+            avail != null ? (int) Math.round(avail) : 0,
+            requestCores,
+            limitCores,
+            requestGiB,
+            limitGiB,
+            nodeCount != null ? (int) Math.round(nodeCount) : 0,
+            cpuCores != null ? cpuCores / 1e9 : 0.0,
+            true
+        );
+    }
+
+    private static Double column(LogsTableRow row, String column) {
+        return row.getColumnValue(column).map(c -> c.getValueAsDouble()).orElse(null);
     }
 
     private record Row(Instant timestamp, double cpuPct, double memPct) {}

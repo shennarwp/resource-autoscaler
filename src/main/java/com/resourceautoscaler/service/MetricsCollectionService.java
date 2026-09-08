@@ -1,5 +1,6 @@
 package com.resourceautoscaler.service;
 
+import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
@@ -101,6 +102,10 @@ public class MetricsCollectionService {
 
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return metricsRepository.getPeakHoursConfig(resourceId);
+    }
+
+    public CurrentConfig getCurrentConfig(String resourceId) {
+        return metricsRepository.getCurrentConfig(resourceId);
     }
 
     private String getColumnType(String resourceId) {
