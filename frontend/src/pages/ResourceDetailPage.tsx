@@ -224,7 +224,7 @@ export default function ResourceDetailPage() {
             <YAxis domain={[0, 100]} />
             <Tooltip content={<ChartTooltip />} />
             <Legend />
-            <Line type="monotone" dataKey="memory" stroke="var(--memory-color)" name="Memory %" />
+            <Line type="monotone" dataKey="memory" stroke="var(--memory-color)" name="Memory %" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
