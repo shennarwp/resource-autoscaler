@@ -58,6 +58,12 @@ After making changes, verify with:
 2. `cd frontend && npm run build`
 3. `cd <root> && mvn test`
 
+## Committing
+
+Commit after every change. Before committing, inspect `git status`, `git diff`,
+and `git log --oneline -10`, stage only intended files, and never commit secrets
+or build artifacts.
+
 ## Frontend conventions
 
 - `ResourceDetailPage.tsx` — resource detail view with CPU/memory charts and
