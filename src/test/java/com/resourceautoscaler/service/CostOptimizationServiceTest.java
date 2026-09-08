@@ -1,0 +1,72 @@
+package com.resourceautoscaler.service;
+
+import com.resourceautoscaler.model.CostAnalysis;
+import com.resourceautoscaler.model.MetricPoint;
+import com.resourceautoscaler.model.PeakHoursConfig;
+import com.resourceautoscaler.model.ResourceMetrics;
+import com.resourceautoscaler.model.ScalingRecommendation;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.time.Instant;
+import java.time.LocalTime;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class CostOptimizationServiceTest {
+
+    private final PeakHoursConfig functionConfig = new PeakHoursConfig(
+        LocalTime.of(6, 0), LocalTime.of(22, 0),
+        List.of(1, 2, 3, 4, 5, 6, 0), 55.0, 8.0, 10
+    );
+
+    @Test
+    void positiveSavingsAreSubtractedAndResourceConfigIsUsed() {
+        MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
+        AnalysisService analysisService = mock(AnalysisService.class);
+        CostOptimizationService service = new CostOptimizationService(metricsService, analysisService);
+
+        ResourceMetrics metrics = new ResourceMetrics(
+            "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
+            Instant.now(),
+            List.<MetricPoint>of(),
+            new ResourceMetrics.AggregatedStats(30, 60, 5, 55, 70, 100, 40, 5, 100, 100)
+        );
+        ScalingRecommendation rec = new ScalingRecommendation(
+            "aks-primary-cluster", "Primary AKS Cluster",
+            ScalingRecommendation.ResourceType.AKS_DEPLOYMENT,
+            ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT,
+            "3 replicas", "1 replica",
+            "07:00 - 18:00", "18:00 - 07:00",
+            LocalTime.of(7, 0), LocalTime.of(18, 0),
+            100.0, 25.0, 0.8,
+            Instant.now(), "rationale"
+        );
+
+        when(metricsService.getMonitoredResources()).thenReturn(List.of("aks-primary-cluster"));
+        when(metricsService.collectMetrics("aks-primary-cluster", 30.0)).thenReturn(metrics);
+        when(metricsService.getPeakHoursConfig("aks-primary-cluster")).thenReturn(functionConfig);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble())).thenReturn(List.of(rec));
+
+        CostAnalysis analysis = service.generateCostAnalysis();
+
+        CostAnalysis.ResourceCostBreakdown breakdown = analysis.resources().getFirst();
+        assertEquals(2400.0, breakdown.currentMonthlyCostUsd(), 0.001);
+        assertEquals(2300.0, breakdown.optimizedMonthlyCostUsd(), 0.001);
+        assertEquals(100.0, breakdown.potentialSavingsUsd(), 0.001);
+        assertTrue(breakdown.potentialSavingsUsd() > 0);
+        assertEquals(2300.0, analysis.summary().totalOptimizedCostUsd(), 0.001);
+
+        ArgumentCaptor<PeakHoursConfig> configCaptor = ArgumentCaptor.forClass(PeakHoursConfig.class);
+        verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
+            configCaptor.capture(), org.mockito.ArgumentMatchers.eq(2400.0));
+        assertEquals(functionConfig, configCaptor.getValue());
+    }
+}
