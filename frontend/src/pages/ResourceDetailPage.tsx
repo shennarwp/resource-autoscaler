@@ -171,11 +171,11 @@ export default function ResourceDetailPage() {
           <span className="stat-value">{metrics.stats.avgCpuUtilization.toFixed(1)}%</span>
         </div>
         <div className="stat-box">
-          <span className="stat-label">Peak CPU</span>
+          <span className="stat-label">Avg CPU (Peak Hrs)</span>
           <span className="stat-value">{metrics.stats.peakHourUtilization.toFixed(1)}%</span>
         </div>
         <div className="stat-box">
-          <span className="stat-label">Off-Peak CPU</span>
+          <span className="stat-label">Avg CPU (Off-Peak)</span>
           <span className="stat-value">{metrics.stats.offPeakHourUtilization.toFixed(1)}%</span>
         </div>
         <div className="stat-box">
