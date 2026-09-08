@@ -21,8 +21,8 @@ public class MetricsCollectionService {
     }
 
     @Cacheable(value = "resourceMetrics", key = "#resourceId + '-' + #days")
-    public ResourceMetrics collectMetrics(String resourceId, int days) {
-        Duration timeRange = Duration.ofDays(days);
+    public ResourceMetrics collectMetrics(String resourceId, double days) {
+        Duration timeRange = Duration.ofSeconds(Math.round(days * 86_400));
         List<MetricPoint> dataPoints = metricsRepository.getAllMetrics(resourceId, timeRange);
         PeakHoursConfig config = metricsRepository.getPeakHoursConfig(resourceId);
 
@@ -92,6 +92,7 @@ public class MetricsCollectionService {
     }
 
     private String getColumnType(String resourceId) {
+        if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
         if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
         if (resourceId.startsWith("vm")) return "AZURE_VM";
         if (resourceId.startsWith("app")) return "APP_SERVICE";
@@ -101,6 +102,8 @@ public class MetricsCollectionService {
 
     private String getResourceName(String resourceId) {
         return switch (resourceId) {
+            case "nginx-busy" -> "Nginx Busy (K3s)";
+            case "nginx-idle" -> "Nginx Idle (K3s)";
             case "aks-primary-cluster" -> "Primary AKS Cluster";
             case "vm-backend-01" -> "Backend VM-01";
             case "appservice-api-gateway" -> "API Gateway";

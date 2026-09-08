@@ -75,7 +75,55 @@ The API spec is auto-generated on every startup from controllers and models.
 | Profile | Description |
 |---------|-------------|
 | `mock` | Default. Synthetic sine-wave data (peak 07:00-18:00, off-peak low). Zero cloud cost. |
-| `azure` | Real Azure Monitor integration. Requires `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`. |
+| `azure` | Real Azure Monitor integration (e.g. Azure App Service). Requires service principal credentials (see below). |
+| `insights` | Real cluster metrics from Azure Monitor Container Insights (Log Analytics). Requires service principal credentials + Log Analytics Reader on the workspace (see below). |
+
+### Azure Profile Setup
+
+1. Create a service principal:
+
+```bash
+az ad sp create-for-rbac --name resource-autoscaler --role "Monitoring Reader" --scopes /subscriptions/{subscription-id}
+```
+
+2. Set environment variables:
+
+```bash
+export AZURE_SUBSCRIPTION_ID=your_subscription_id
+export AZURE_TENANT_ID=your_tenant_id
+export AZURE_CLIENT_ID=your_client_id
+export AZURE_CLIENT_SECRET=your_client_secret
+export AZURE_RESOURCE_GROUP=autoscaler-demo
+```
+
+3. Run with azure profile:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=azure
+```
+
+### Insights Profile Setup
+
+Monitors Kubernetes deployments on an Azure Arc cluster via Container Insights. CPU/memory are read from the `Perf` (`K8SContainer`) table and joined to `KubePodInventory` to scope metrics to each deployment (`nginx-busy`, `nginx-idle`).
+
+```bash
+export AZURE_LOG_ANALYTICS_WORKSPACE_ID=your_log_analytics_workspace_id
+```
+
+The service principal needs the **Log Analytics Reader** role on the workspace:
+
+```bash
+az role assignment create \
+  --assignee $AZURE_CLIENT_ID \
+  --role "Log Analytics Reader" \
+  --scope /subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{workspace-id}
+```
+
+Run:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=insights
+```
 
 ## Project Structure
 
@@ -86,7 +134,7 @@ The API spec is auto-generated on every startup from controllers and models.
 │   ├── controller/       # REST endpoints
 │   ├── dto/              # Request/response DTOs
 │   ├── model/            # Domain records
-│   ├── repository/       # MetricsRepository + MockMetricsRepository
+│   ├── repository/       # MetricsRepository + MockMetricsRepository + AzureMetricsRepository
 │   └── service/          # Analysis, cost optimization, code generation
 ├── src/main/resources/
 │   ├── application.yml

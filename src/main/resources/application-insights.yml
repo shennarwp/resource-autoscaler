@@ -1,10 +1,10 @@
 app:
   azure:
-    subscription-id: ${AZURE_SUBSCRIPTION_ID}
     tenant-id: ${AZURE_TENANT_ID}
     client-id: ${AZURE_CLIENT_ID}
     client-secret: ${AZURE_CLIENT_SECRET}
-    resource-group: ${AZURE_RESOURCE_GROUP:autoscaler-demo}
+  insights:
+    workspace-id: ${AZURE_LOG_ANALYTICS_WORKSPACE_ID}
 
 logging:
   level:
