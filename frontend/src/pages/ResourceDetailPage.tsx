@@ -100,10 +100,6 @@ function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
   return NICE_STEP_MS.find((s) => s >= spanMs / 8) ?? NICE_STEP_MS[NICE_STEP_MS.length - 1];
 }
 
-function tickFormatter(value: number): string {
-  return format(new Date(value), 'HH:mm');
-}
-
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
   const [selectedDays, setSelectedDays] = useState(30);
@@ -112,6 +108,13 @@ export default function ResourceDetailPage() {
 
   const rangeLabel = RANGE_LABELS[selectedDays] || `${selectedDays} days`;
   const labelEvery = LABEL_EVERY_MINUTES[selectedDays] ?? 60;
+
+  const formatAxisLabel = (value: number): string => {
+    const date = new Date(value);
+    if (selectedDays >= 30) return format(date, 'MMM dd');
+    if (selectedDays >= 7) return format(date, 'MMM dd HH:mm');
+    return format(date, 'HH:mm');
+  };
 
   const chartData = useMemo(() => {
     if (!metrics) return [];
@@ -192,7 +195,7 @@ export default function ResourceDetailPage() {
               scale="time"
               domain={axisDomain}
               ticks={labelTimes}
-              tickFormatter={tickFormatter}
+              tickFormatter={formatAxisLabel}
               tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
             />
             <YAxis domain={[0, 100]} />
@@ -215,7 +218,7 @@ export default function ResourceDetailPage() {
               scale="time"
               domain={axisDomain}
               ticks={labelTimes}
-              tickFormatter={tickFormatter}
+              tickFormatter={formatAxisLabel}
               tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
             />
             <YAxis domain={[0, 100]} />
