@@ -102,7 +102,7 @@ function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
 
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
-  const [selectedDays, setSelectedDays] = useState(30);
+  const [selectedDays, setSelectedDays] = useState(1);
   const { metrics, loading: metricsLoading } = useMetrics(resourceId ?? null, selectedDays);
   const { recommendations } = useRecommendations(resourceId ?? null, selectedDays);
 
