@@ -294,6 +294,12 @@ h4 {
   margin-bottom: 2rem;
 }
 
+.chart-info {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: -0.5rem 0 0.75rem;
+}
+
 /* Recommendations */
 .recommendation-card {
   margin-bottom: 1rem;
