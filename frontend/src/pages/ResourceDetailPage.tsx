@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useMetrics, useRecommendations } from '../hooks/useApi';
+import { useMetrics, useRecommendations, usePeakHoursConfig } from '../hooks/useApi';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area, ReferenceLine
@@ -105,6 +105,10 @@ export default function ResourceDetailPage() {
   const [selectedDays, setSelectedDays] = useState(1);
   const { metrics, loading: metricsLoading, refreshing: metricsRefreshing } = useMetrics(resourceId ?? null, selectedDays);
   const { recommendations, refreshing: recommendationsRefreshing } = useRecommendations(resourceId ?? null, selectedDays);
+  const peakConfig = usePeakHoursConfig(resourceId ?? null);
+
+  const peakTarget = peakConfig?.peakTargetUtilization ?? 65;
+  const offPeakTarget = peakConfig?.offPeakTargetUtilization ?? 10;
 
   const rangeLabel = RANGE_LABELS[selectedDays] || `${selectedDays} days`;
   const labelEvery = LABEL_EVERY_MINUTES[selectedDays] ?? 60;
@@ -207,8 +211,8 @@ export default function ResourceDetailPage() {
             />
             <YAxis domain={[0, 100]} />
             <Tooltip content={<ChartTooltip />} />
-            <ReferenceLine y={65} stroke="var(--warning)" strokeDasharray="3 3" label="Peak Target" />
-            <ReferenceLine y={10} stroke="var(--success)" strokeDasharray="3 3" label="Off-Peak Target" />
+            <ReferenceLine y={peakTarget} stroke="var(--warning)" strokeDasharray="3 3" label={`Peak Target ${peakTarget}%`} />
+            <ReferenceLine y={offPeakTarget} stroke="var(--success)" strokeDasharray="3 3" label={`Off-Peak Target ${offPeakTarget}%`} />
             <Area type="monotone" dataKey="cpu" stroke="var(--cpu-color)" fill="var(--cpu-color)" fillOpacity={0.3} />
           </AreaChart>
         </ResponsiveContainer>

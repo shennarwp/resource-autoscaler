@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { MetricsResponse, CostAnalysis, ScalingRecommendation, RecommendationResponse } from '../types/api';
+import type { MetricsResponse, CostAnalysis, ScalingRecommendation, RecommendationResponse, PeakHoursConfig } from '../types/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 
@@ -20,6 +20,11 @@ export const metricsApi = {
     const { data } = await api.get<MetricsResponse>(`/metrics/${resourceId}`, {
       params: { days },
     });
+    return data;
+  },
+
+  getPeakHoursConfig: async (resourceId: string): Promise<PeakHoursConfig> => {
+    const { data } = await api.get<PeakHoursConfig>(`/metrics/${resourceId}/peak-config`);
     return data;
   },
 };

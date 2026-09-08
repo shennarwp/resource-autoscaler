@@ -49,8 +49,8 @@ public class MetricsCollectionService {
             return new ResourceMetrics.AggregatedStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
-        double cpuSum = 0, cpuMax = Double.MIN_VALUE, cpuMin = Double.MAX_VALUE;
-        double memSum = 0, memMax = Double.MIN_VALUE;
+        double cpuSum = 0, cpuMax = Double.NEGATIVE_INFINITY, cpuMin = Double.MAX_VALUE;
+        double memSum = 0, memMax = Double.NEGATIVE_INFINITY;
         double peakSum = 0, peakCount = 0;
         double offPeakSum = 0, offPeakCount = 0;
         double reqSum = 0;

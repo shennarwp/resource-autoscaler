@@ -17,6 +17,8 @@ management:
       show-details: always
 
 app:
+  cache:
+    eviction-minutes: 5
   peak-hours:
     start: "07:00"
     end: "18:00"

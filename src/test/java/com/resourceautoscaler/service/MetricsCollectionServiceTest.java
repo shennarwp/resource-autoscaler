@@ -131,9 +131,35 @@ class MetricsCollectionServiceTest {
         assertEquals(PeakHoursConfig.defaults(), service.getPeakHoursConfig("aks-primary-cluster"));
     }
 
+    @Test
+    void exactlyIdleWindowReportsZeroMaxCpu() {
+        PeakHoursConfig config = new PeakHoursConfig(
+            LocalTime.of(7, 0), LocalTime.of(18, 0),
+            List.of(1, 2, 3, 4, 5), 65.0, 10.0, 15
+        );
+        MetricsRepository repo = mock(MetricsRepository.class);
+        when(repo.getPeakHoursConfig(anyString())).thenReturn(config);
+        when(repo.getAllMetrics(anyString(), any(Duration.class))).thenReturn(List.of(
+            idlePoint("2026-09-08T07:00:00Z"),
+            idlePoint("2026-09-08T18:00:00Z")
+        ));
+
+        MetricsCollectionService service = new MetricsCollectionService(repo);
+        ResourceMetrics metrics = service.collectMetrics("aks-primary-cluster", 1);
+
+        assertEquals(0.0, metrics.aggregated().maxCpuUtilization(), 0.001);
+        assertEquals(0.0, metrics.aggregated().maxMemoryUtilization(), 0.001);
+    }
+
     private MetricPoint point(String iso, double cpu) {
         return new MetricPoint(
             Instant.parse(iso), cpu, 50.0, 100, "aks-primary-cluster", "AKS_CLUSTER"
+        );
+    }
+
+    private MetricPoint idlePoint(String iso) {
+        return new MetricPoint(
+            Instant.parse(iso), 0, 0, 0, "aks-primary-cluster", "AKS_CLUSTER"
         );
     }
 }
