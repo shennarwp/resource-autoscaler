@@ -171,6 +171,10 @@ export default function ResourceDetailPage() {
           <span className="stat-value">{metrics.stats.avgCpuUtilization.toFixed(1)}%</span>
         </div>
         <div className="stat-box">
+          <span className="stat-label">Max CPU</span>
+          <span className="stat-value highlight">{metrics.stats.maxCpuUtilization.toFixed(1)}%</span>
+        </div>
+        <div className="stat-box">
           <span className="stat-label">Avg CPU (Peak Hrs)</span>
           <span className="stat-value">{metrics.stats.peakHourUtilization.toFixed(1)}%</span>
         </div>
@@ -186,7 +190,6 @@ export default function ResourceDetailPage() {
 
       <div className="chart-section">
         <h2>CPU Utilization ({rangeLabel})</h2>
-        <p className="chart-info">Max CPU: {chartData.length > 0 ? Math.max(...chartData.map((p) => p.cpu)).toFixed(1) : '—'}%</p>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
