@@ -30,13 +30,13 @@ class CostEstimateServiceTest {
         assertEquals(expected, service.estimateMonthlyCost(k3s, "K8S_CLUSTER"), 0.001);
     }
 
-    /** Verifies kubernetes cluster cost includes all discovered nodes. */
+    /** Verifies total discovered node capacity is not multiplied by node count twice. */
     @Test
-    void kubernetesClusterCostIncludesAllDiscoveredNodes() {
+    void kubernetesClusterCostUsesTotalDiscoveredNodeCapacityOnce() {
         CurrentConfig cluster = new CurrentConfig(
             "aks-primary-cluster", 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true);
 
-        assertEquals(640.0, service.estimateMonthlyCost(cluster, "AKS_CLUSTER"), 0.001);
+        assertEquals(320.0, service.estimateMonthlyCost(cluster, "AKS_CLUSTER"), 0.001);
     }
 
     /** Verifies kubernetes cluster without discovered nodes falls back to flat estimate. */
