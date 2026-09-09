@@ -168,7 +168,7 @@ public class MockMetricsRepository implements MetricsRepository {
                 || kubeSnapshot.dataPoints() == null || kubeSnapshot.dataPoints().isEmpty()) {
             return null;
         }
-        Instant end = Instant.now();
+        Instant end = Instant.parse(kubeSnapshot.dataPoints().getLast().timestamp());
         return samplesForRange(kubeSnapshot, end.minus(timeRange), end, resourceId);
     }
 
