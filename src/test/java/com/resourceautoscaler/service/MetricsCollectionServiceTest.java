@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 /** Tests the metrics collection service behavior and regression cases. */
 class MetricsCollectionServiceTest {
 
-    /** Verifies classifies boundary and weekend samples into peak and off peak buckets. */
+    /** Verifies classifies boundary and weekend samples into peak and off-peak buckets. */
     @Test
     void classifiesBoundaryAndWeekendSamplesIntoPeakAndOffPeakBuckets() {
         MetricsRepository repo = mock(MetricsRepository.class);
@@ -44,7 +44,7 @@ class MetricsCollectionServiceTest {
         assertEquals(35.0 / 3.0, metrics.aggregated().offPeakHourUtilization(), 0.001);
     }
 
-    /** Verifies classification honors non zero minutes in peak window. */
+    /** Verifies classification honors non-zero minutes in peak window. */
     @Test
     void classificationHonorsNonZeroMinutesInPeakWindow() {
         PeakHoursConfig config = new PeakHoursConfig(

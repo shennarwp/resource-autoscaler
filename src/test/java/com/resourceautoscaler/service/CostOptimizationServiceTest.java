@@ -41,7 +41,7 @@ class CostOptimizationServiceTest {
         ResourceMetrics metrics = new ResourceMetrics(
             "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
             Instant.now(),
-            List.<MetricPoint>of(),
+            List.of(),
             new ResourceMetrics.AggregatedStats(30, 60, 5, 55, 70, 100, 40, 5, 100, 100)
         );
         ScalingRecommendation rec = new ScalingRecommendation(
@@ -90,7 +90,7 @@ class CostOptimizationServiceTest {
 
         ResourceMetrics metrics = new ResourceMetrics(
             "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
-            Instant.now(), List.<MetricPoint>of(),
+            Instant.now(), List.of(),
             new ResourceMetrics.AggregatedStats(30, 60, 5, 55, 70, 100, 40, 5, 100, 100)
         );
         ScalingRecommendation rec = new ScalingRecommendation(

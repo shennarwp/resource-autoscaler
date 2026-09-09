@@ -98,7 +98,7 @@ The mock profile runs without Azure credentials and exercises the same metrics,
 classification, recommendation, cost-analysis, and code-generation pipeline as
 the cloud-backed profiles.
 
-By default it monitors the `nginx-busy` Kubernetes resource:
+By default, it monitors the `nginx-busy` Kubernetes resource:
 
 ```yaml
 app:

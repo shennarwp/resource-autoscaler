@@ -33,7 +33,7 @@ class RecommendationsControllerTest {
         List.of(1, 2, 3, 4, 5, 6, 0), 55.0, 8.0, 10
     );
 
-    /** Verifies recommendations use resource specific peak hours config. */
+    /** Verifies recommendations use resource specific peak hours' config. */
     @Test
     void recommendationsUseResourceSpecificPeakHoursConfig() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
@@ -144,7 +144,7 @@ class RecommendationsControllerTest {
         return new ResourceMetrics(
             resourceId, resourceType, resourceId,
             Instant.now(),
-            List.<MetricPoint>of(),
+            List.of(),
             stats
         );
     }

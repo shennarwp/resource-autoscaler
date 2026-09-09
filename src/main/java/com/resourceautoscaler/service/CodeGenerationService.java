@@ -290,7 +290,7 @@ public class CodeGenerationService {
         int start = Math.min(startHour, endHour);
         int end = Math.max(startHour, endHour);
         for (int hour = start; hour < end; hour++) {
-            if (sb.length() > 0) sb.append(", ");
+            if (!sb.isEmpty()) sb.append(", ");
             sb.append(hour);
         }
         return sb.toString();
@@ -303,7 +303,7 @@ public class CodeGenerationService {
             if (hour >= startHour && hour < endHour) {
                 continue;
             }
-            if (sb.length() > 0) sb.append(", ");
+            if (!sb.isEmpty()) sb.append(", ");
             sb.append(hour);
         }
         return sb.toString();

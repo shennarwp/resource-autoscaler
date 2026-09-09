@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** Tests the peak hours config behavior and regression cases. */
 class PeakHoursConfigTest {
 
-    /** Verifies normalizes sunday deduplicates and drops invalid days. */
+    /** Verifies normalizes Sunday deduplicates and drops invalid days. */
     @Test
     void normalizesSundayDeduplicatesAndDropsInvalidDays() {
         PeakHoursConfig config = new PeakHoursConfig(
