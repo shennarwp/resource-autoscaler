@@ -202,6 +202,7 @@ public class AnalysisService {
             PeakHoursConfig config,
             double savingsPercent
     ) {
+        double roundedSavings = Math.round(savingsPercent * 10.0) / 10.0;
         return String.format(
             "Detected significant utilization gap: peak hours avg %.1f%% CPU vs off-peak avg %.1f%% CPU. " +
             "Off-peak resources are idle for ~%.0f%% of the week. " +
@@ -210,7 +211,7 @@ public class AnalysisService {
             stats.peakHourUtilization(),
             stats.offPeakHourUtilization(),
             offPeakHoursFraction(config) * 100,
-            savingsPercent
+            roundedSavings
         );
     }
 

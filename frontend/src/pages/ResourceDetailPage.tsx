@@ -56,6 +56,11 @@ const tooltipStyle = {
   padding: '8px 12px',
 };
 
+const DEFAULT_TARGETS_BY_RESOURCE: Record<string, { peak: number; offPeak: number }> = {
+  'function-data-processor': { peak: 55, offPeak: 8 },
+  default: { peak: 65, offPeak: 10 },
+};
+
 function ChartTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload as DataPoint;
@@ -107,8 +112,9 @@ export default function ResourceDetailPage() {
   const { recommendations, refreshing: recommendationsRefreshing } = useRecommendations(resourceId ?? null, selectedDays);
   const peakConfig = usePeakHoursConfig(resourceId ?? null);
 
-  const peakTarget = peakConfig?.peakTargetUtilization ?? 65;
-  const offPeakTarget = peakConfig?.offPeakTargetUtilization ?? 10;
+  const fallbackTargets = DEFAULT_TARGETS_BY_RESOURCE[resourceId ?? ''] ?? DEFAULT_TARGETS_BY_RESOURCE.default;
+  const peakTarget = peakConfig?.peakTargetUtilization ?? fallbackTargets.peak;
+  const offPeakTarget = peakConfig?.offPeakTargetUtilization ?? fallbackTargets.offPeak;
 
   const rangeLabel = RANGE_LABELS[selectedDays] || `${selectedDays} days`;
   const labelEvery = LABEL_EVERY_MINUTES[selectedDays] ?? 60;

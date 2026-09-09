@@ -8,6 +8,7 @@ public class CostEstimateService {
 
     static final double HOURLY_RATE_PER_CORE_USD = 0.18;
     static final double HOURS_PER_MONTH = 730;
+    private static final double K8S_MONTHLY_COST_PER_CORE_USD = 40.0;
 
     public double estimateMonthlyCost(String resourceType) {
         return switch (resourceType) {
@@ -24,7 +25,9 @@ public class CostEstimateService {
                 && currentConfig != null
                 && currentConfig.available()
                 && currentConfig.nodeCpuCores() > 0) {
-            return currentConfig.nodeCpuCores() * HOURLY_RATE_PER_CORE_USD * HOURS_PER_MONTH;
+            double coreCount = Math.max(1.0, currentConfig.nodeCpuCores());
+            double nodeCount = Math.max(1.0, currentConfig.nodeCount());
+            return coreCount * nodeCount * K8S_MONTHLY_COST_PER_CORE_USD;
         }
         return estimateMonthlyCost(resourceType);
     }
