@@ -48,8 +48,11 @@ public class CostOptimizationService {
 
             double optimizedCost = monthlyCost;
             List<String> optimizations = new ArrayList<>();
+            double totalSavings = 0.0;
             for (ScalingRecommendation rec : recs) {
-                optimizedCost -= rec.estimatedMonthlySavingsUsd();
+                double savings = Math.max(0.0, rec.estimatedMonthlySavingsUsd());
+                totalSavings += savings;
+                optimizedCost = Math.max(0.0, optimizedCost - savings);
                 optimizations.add(rec.recommendationType().name() + ": " + rec.rationale().substring(0, Math.min(80, rec.rationale().length())) + "...");
             }
 
@@ -57,14 +60,15 @@ public class CostOptimizationService {
                 optimizationsCount++;
             }
 
+            double potentialSavings = Math.max(0.0, monthlyCost - optimizedCost);
             breakdowns.add(new CostAnalysis.ResourceCostBreakdown(
                 resourceId,
                 metrics.resourceName(),
                 metrics.resourceType(),
                 monthlyCost,
                 optimizedCost,
-                monthlyCost - optimizedCost,
-                monthlyCost > 0 ? ((monthlyCost - optimizedCost) / monthlyCost) * 100 : 0,
+                potentialSavings,
+                monthlyCost > 0 ? (potentialSavings / monthlyCost) * 100 : 0,
                 metrics.aggregated().peakHourUtilization(),
                 metrics.aggregated().offPeakHourUtilization(),
                 optimizations
