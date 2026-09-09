@@ -46,8 +46,8 @@ public class AnalysisService {
                 recType,
                 currentConfigText,
                 recommendedConfig,
-                config.peakStart() + " - " + config.peakEnd(),
-                config.peakEnd() + " - " + config.peakStart(),
+                config.peakStart() + " - " + config.peakEnd() + " UTC",
+                config.peakEnd() + " - " + config.peakStart() + " UTC",
                 config.peakStart(),
                 config.peakEnd(),
                 estimatedSavings,
@@ -170,16 +170,16 @@ public class AnalysisService {
         return switch (resourceType) {
             case "AKS_CLUSTER", "K8S_CLUSTER" ->
                 "KEDA ScaledObject: " + peakReplicas(currentConfig) + " replicas " + config.peakStart() + "-" + config.peakEnd() +
-                ", 1 replica " + config.peakEnd() + "-" + config.peakStart();
+                " UTC, 1 replica " + config.peakEnd() + "-" + config.peakStart() + " UTC";
             case "AZURE_VM" ->
                 "Terraform azurerm_monitor_autoscale: D4s_v3 " + config.peakStart() + "-" + config.peakEnd() +
-                ", B2s " + config.peakEnd() + "-" + config.peakStart();
+                " UTC, B2s " + config.peakEnd() + "-" + config.peakStart() + " UTC";
             case "APP_SERVICE" ->
                 "Auto-scale: S3 " + config.peakStart() + "-" + config.peakEnd() +
-                ", B1 " + config.peakEnd() + "-" + config.peakStart();
+                " UTC, B1 " + config.peakEnd() + "-" + config.peakStart() + " UTC";
             case "AZURE_FUNCTION" ->
-                "Pre-warm " + config.peakStart() + ", scale to 0 " + config.peakEnd();
-            default -> "Apply schedule-based scaling";
+                "Pre-warm " + config.peakStart() + " UTC, scale to 0 " + config.peakEnd() + " UTC";
+            default -> "Apply schedule-based scaling (UTC)";
         };
     }
 
