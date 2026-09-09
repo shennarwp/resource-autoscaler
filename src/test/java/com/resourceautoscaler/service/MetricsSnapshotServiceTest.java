@@ -24,11 +24,13 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/** Tests the metrics snapshot service behavior and regression cases. */
 class MetricsSnapshotServiceTest {
 
     @TempDir
     Path tempDir;
 
+    /** Verifies export writes readable snapshot file. */
     @Test
     void exportWritesReadableSnapshotFile() {
         MetricsRepository repo = mock(MetricsRepository.class);
@@ -63,6 +65,7 @@ class MetricsSnapshotServiceTest {
         assertEquals(3, loaded.currentConfig().replicas());
     }
 
+    /** Verifies export throws when no raw source supports resource. */
     @Test
     void exportThrowsWhenNoRawSourceSupportsResource() {
         MetricsRepository repo = mock(MetricsRepository.class);

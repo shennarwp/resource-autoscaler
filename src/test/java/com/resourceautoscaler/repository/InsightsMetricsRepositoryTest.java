@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Tests the insights metrics repository behavior and regression cases. */
 class InsightsMetricsRepositoryTest {
 
+    /** Verifies config query scopes deployments pods and nodes to resource. */
     @Test
     void configQueryScopesDeploymentsPodsAndNodesToResource() {
         String query = InsightsMetricsRepository.buildConfigQuery("nginx-busy", "24h", "default");
@@ -21,6 +23,7 @@ class InsightsMetricsRepositoryTest {
         assertTrue(query.contains("CounterName == 'cpuCapacityNanoCores'"));
     }
 
+    /** Verifies export query binds explicit exact window with sixty second step. */
     @Test
     void configQuerySumsRawNodeCapacityWithoutAliasingArgMax() {
         String query = InsightsMetricsRepository.buildConfigQuery("nginx-busy", "24h", "default");
@@ -42,6 +45,7 @@ class InsightsMetricsRepositoryTest {
         assertFalse(query.contains("ago("));
     }
 
+    /** Verifies config row maps nanocores and bytes to cores and gi b. */
     @Test
     void configRowMapsNanocoresAndBytesToCoresAndGiB() {
         CurrentConfig config = InsightsMetricsRepository.currentConfigFromValues(
@@ -64,6 +68,7 @@ class InsightsMetricsRepositoryTest {
         assertEquals(4.0625, config.nodeCpuCores(), 1e-9);
     }
 
+    /** Verifies missing spec returns unknown config. */
     @Test
     void missingSpecReturnsUnknownConfig() {
         CurrentConfig config = InsightsMetricsRepository.currentConfigFromValues(
@@ -74,6 +79,7 @@ class InsightsMetricsRepositoryTest {
         assertEquals(0, config.replicas());
     }
 
+    /** Verifies nullable series columns default to zero. */
     @Test
     void nullableSeriesColumnsDefaultToZero() {
         CurrentConfig config = InsightsMetricsRepository.currentConfigFromValues(

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleUnaryOperator;
 
+/** Reads Azure Monitor metrics for Azure resource profiles. */
 @Repository
 @Profile("azure")
 public class AzureMetricsRepository implements MetricsRepository {
@@ -49,6 +50,7 @@ public class AzureMetricsRepository implements MetricsRepository {
 
     private MetricsQueryClient metricsClient;
 
+    /** Creates the Azure Monitor client from the configured service principal. */
     @PostConstruct
     public void init() {
         var credential = new ClientSecretCredentialBuilder()
@@ -62,21 +64,25 @@ public class AzureMetricsRepository implements MetricsRepository {
                 .buildClient();
     }
 
+    /** Loads and converts the Azure CPU metric to a percentage. */
     @Override
     public List<MetricPoint> getCpuUtilization(String resourceId, Duration timeRange) {
         return queryMetric(resourceId, timeRange, "CpuTime");
     }
 
+    /** Loads memory samples and converts bytes to megabytes. */
     @Override
     public List<MetricPoint> getMemoryUtilization(String resourceId, Duration timeRange) {
         return queryMetric(resourceId, timeRange, "MemoryWorkingSet", value -> toMb(value));
     }
 
+    /** Loads Azure request totals for the requested window. */
     @Override
     public List<MetricPoint> getActiveRequestCount(String resourceId, Duration timeRange) {
         return queryMetric(resourceId, timeRange, "Requests");
     }
 
+    /** Queries the three metric streams and joins them by timestamp. */
     @Override
     public List<MetricPoint> getAllMetrics(String resourceId, Duration timeRange) {
         List<MetricPoint> cpu = getCpuUtilization(resourceId, timeRange);
@@ -85,6 +91,7 @@ public class AzureMetricsRepository implements MetricsRepository {
         return mergeByTimestamp(resourceId, getResourceType(resourceId), cpu, mem, req);
     }
 
+    /** Merges independently sampled streams, defaulting missing values to zero. */
     static List<MetricPoint> mergeByTimestamp(
             String resourceId, String resourceType,
             List<MetricPoint> cpu, List<MetricPoint> mem, List<MetricPoint> req
@@ -114,6 +121,7 @@ public class AzureMetricsRepository implements MetricsRepository {
         return merged;
     }
 
+    /** Returns the representative resources exposed by the Azure profile. */
     @Override
     public List<String> getMonitoredResourceIds() {
         return List.of(
@@ -122,21 +130,25 @@ public class AzureMetricsRepository implements MetricsRepository {
         );
     }
 
+    /** Uses the common default schedule until resource-specific configuration exists. */
     @Override
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return PeakHoursConfig.defaults();
     }
 
+    /** Azure Monitor does not currently expose capacity discovery for this adapter. */
     @Override
     public CurrentConfig getCurrentConfig(String resourceId) {
         return CurrentConfig.unknown(resourceId);
     }
 
+    /** Queries one named metric and applies its unit conversion. */
     private List<MetricPoint> queryMetric(String resourceId, Duration timeRange, String metricName) {
         DoubleUnaryOperator cpuTransform = metricName.equals("CpuTime") ? v -> v / 3600.0 * 100.0 : v -> v;
         return queryMetric(resourceId, timeRange, metricName, cpuTransform);
     }
 
+    /** Executes a metric query over a UTC interval and maps returned time series values. */
     private List<MetricPoint> queryMetric(
             String resourceId, Duration timeRange, String metricName,
             DoubleUnaryOperator transform
@@ -183,6 +195,7 @@ public class AzureMetricsRepository implements MetricsRepository {
         return points;
     }
 
+    /** Builds the fully qualified Azure resource ID from configured subscription data. */
     private String buildResourceId(String resourceId) {
         return String.format(
             "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Web/sites/%s",
@@ -190,10 +203,12 @@ public class AzureMetricsRepository implements MetricsRepository {
         );
     }
 
+    /** Converts bytes to the megabyte unit used by the API model. */
     private static double toMb(double bytes) {
         return bytes / (1024 * 1024);
     }
 
+    /** Infers the API resource type from the repository's stable ID prefixes. */
     private String getResourceType(String resourceId) {
         if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
         if (resourceId.startsWith("vm")) return "AZURE_VM";

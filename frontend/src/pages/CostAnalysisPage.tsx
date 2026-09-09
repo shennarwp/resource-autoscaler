@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useCostAnalysis } from '../hooks/useApi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+/** Shared chart tooltip styling for the dark cost-analysis theme. */
 const tooltipStyle = {
   backgroundColor: 'var(--bg-card)',
   border: '1px solid var(--border)',
@@ -9,6 +10,7 @@ const tooltipStyle = {
   color: 'var(--text-primary)',
 };
 
+/** Displays current versus optimized cost by resource. */
 export default function CostAnalysisPage() {
   const { analysis, loading, error } = useCostAnalysis();
 

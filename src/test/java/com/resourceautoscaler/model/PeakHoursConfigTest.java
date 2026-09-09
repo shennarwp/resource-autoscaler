@@ -7,8 +7,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/** Tests the peak hours config behavior and regression cases. */
 class PeakHoursConfigTest {
 
+    /** Verifies normalizes sunday deduplicates and drops invalid days. */
     @Test
     void normalizesSundayDeduplicatesAndDropsInvalidDays() {
         PeakHoursConfig config = new PeakHoursConfig(
@@ -23,6 +25,7 @@ class PeakHoursConfigTest {
         assertEquals(List.of(1, 7), config.peakDaysOfWeek());
     }
 
+    /** Verifies empty days use weekday defaults. */
     @Test
     void emptyDaysUseWeekdayDefaults() {
         PeakHoursConfig config = new PeakHoursConfig(

@@ -3,6 +3,7 @@ package com.resourceautoscaler.model;
 import java.time.Instant;
 import java.util.List;
 
+/** Collected samples and derived utilization statistics for one resource. */
 public record ResourceMetrics(
     String resourceId,
     String resourceType,
@@ -11,6 +12,7 @@ public record ResourceMetrics(
     List<MetricPoint> dataPoints,
     AggregatedStats aggregated
 ) {
+    /** Aggregate values used by API responses and recommendation scoring. */
     public record AggregatedStats(
         double avgCpuUtilization,
         double maxCpuUtilization,

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/** UTC schedule and utilization thresholds used for peak/off-peak analysis. */
 public record PeakHoursConfig(
     LocalTime peakStart,
     LocalTime peakEnd,
@@ -13,6 +14,10 @@ public record PeakHoursConfig(
     double offPeakTargetUtilization,
     int scalingCooldownMinutes
 ) {
+    /**
+     * Normalizes missing times, weekday numbering, duplicates, and invalid days.
+     * Java's Monday-based values are retained; input {@code 0} is accepted as Sunday.
+     */
     public PeakHoursConfig {
         peakStart = peakStart != null ? peakStart : LocalTime.of(7, 0);
         peakEnd = peakEnd != null ? peakEnd : LocalTime.of(18, 0);
@@ -42,6 +47,7 @@ public record PeakHoursConfig(
         peakDaysOfWeek = List.copyOf(normalized);
     }
 
+    /** Returns the default weekday schedule used by profiles without overrides. */
     public static PeakHoursConfig defaults() {
         return new PeakHoursConfig(
             LocalTime.of(7, 0),

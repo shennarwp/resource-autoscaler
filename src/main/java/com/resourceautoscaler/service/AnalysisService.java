@@ -12,9 +12,14 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Converts peak/off-peak utilization differences into actionable recommendations. */
 @Service
 public class AnalysisService {
 
+    /**
+     * Emits a recommendation only when both schedule buckets have samples and the
+     * observed utilization crosses both configured thresholds.
+     */
     public List<ScalingRecommendation> analyzeAndRecommend(
             ResourceMetrics metrics,
             PeakHoursConfig config,
@@ -61,6 +66,7 @@ public class AnalysisService {
         return recommendations;
     }
 
+    /** Estimates weekly off-peak savings from target utilization and schedule coverage. */
     private double calculateSavingsPercentage(
             ResourceMetrics.AggregatedStats stats,
             PeakHoursConfig config
@@ -75,6 +81,7 @@ public class AnalysisService {
         return Math.max(0.0, offPeakHoursFraction * offPeakReduction * 100.0);
     }
 
+    /** Returns the configured peak duration, including schedules crossing midnight. */
     private double peakHoursPerDay(PeakHoursConfig config) {
         long seconds = Duration.between(config.peakStart(), config.peakEnd()).toSeconds();
         if (seconds <= 0) {
@@ -83,12 +90,14 @@ public class AnalysisService {
         return seconds / 3600.0;
     }
 
+    /** Calculates the fraction of a seven-day week outside the peak schedule. */
     private double offPeakHoursFraction(PeakHoursConfig config) {
         int peakDays = config.peakDaysOfWeek().size();
         double peakFraction = (peakDays * peakHoursPerDay(config)) / (7.0 * 24.0);
         return Math.max(0.0, Math.min(1.0, 1.0 - peakFraction));
     }
 
+    /** Scores sample coverage and separation without claiming certainty above 0.95. */
     private double calculateConfidenceScore(
             ResourceMetrics.AggregatedStats stats,
             PeakHoursConfig config
@@ -114,6 +123,7 @@ public class AnalysisService {
         return Math.min(score, 0.95);
     }
 
+    /** Selects KEDA, Terraform, or schedule output for a repository resource type. */
     private ScalingRecommendation.RecommendationType determineRecommendationType(String resourceType) {
         return switch (resourceType) {
             case "AKS_CLUSTER", "K8S_CLUSTER" -> ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT;
@@ -124,6 +134,7 @@ public class AnalysisService {
         };
     }
 
+    /** Formats the discovered or representative current capacity for the UI. */
     private String describeCurrentConfig(String resourceType, CurrentConfig currentConfig) {
         return switch (resourceType) {
             case "AKS_CLUSTER", "K8S_CLUSTER" -> describeClusterConfig(currentConfig);
@@ -134,6 +145,7 @@ public class AnalysisService {
         };
     }
 
+    /** Formats Kubernetes replicas, pod requests/limits, and node capacity. */
     private String describeClusterConfig(CurrentConfig currentConfig) {
         if (currentConfig == null || !currentConfig.available() || currentConfig.replicas() <= 0) {
             return "No cluster config discovered (deployment replica/limit metrics not found in Container Insights)";
@@ -163,6 +175,7 @@ public class AnalysisService {
         return sb.toString();
     }
 
+    /** Formats CPU cores using cores or millicores depending on magnitude. */
     private String cpuFormat(double cores) {
         if (cores >= 1.0) {
             return String.format("%.1f", cores);
@@ -170,6 +183,7 @@ public class AnalysisService {
         return String.format("%.0fm", cores * 1000);
     }
 
+    /** Formats memory using GiB or MiB depending on magnitude. */
     private String memoryFormat(double gib) {
         if (gib >= 1.0) {
             return String.format("%.0fGi", gib);
@@ -177,6 +191,7 @@ public class AnalysisService {
         return String.format("%.0fMi", gib * 1024);
     }
 
+    /** Formats the provider-specific schedule that would reduce off-peak capacity. */
     private String describeRecommendedConfig(String resourceType, PeakHoursConfig config, CurrentConfig currentConfig) {
         return switch (resourceType) {
             case "AKS_CLUSTER", "K8S_CLUSTER" ->
@@ -194,6 +209,7 @@ public class AnalysisService {
         };
     }
 
+    /** Uses discovered replicas when available, otherwise a conservative default. */
     private int peakReplicas(CurrentConfig currentConfig) {
         if (currentConfig != null && currentConfig.available() && currentConfig.replicas() > 0) {
             return currentConfig.replicas();
@@ -201,6 +217,7 @@ public class AnalysisService {
         return 3;
     }
 
+    /** Explains the observed utilization pattern and estimated savings percentage. */
     private String generateRationale(
             ResourceMetrics.AggregatedStats stats,
             PeakHoursConfig config,
@@ -222,6 +239,7 @@ public class AnalysisService {
         );
     }
 
+    /** Maps repository type names to the public recommendation enum. */
     private com.resourceautoscaler.model.ScalingRecommendation.ResourceType mapResourceType(String type) {
         return switch (type) {
             case "AKS_CLUSTER", "K8S_CLUSTER" -> com.resourceautoscaler.model.ScalingRecommendation.ResourceType.AKS_DEPLOYMENT;

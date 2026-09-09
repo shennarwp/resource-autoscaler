@@ -31,7 +31,7 @@ import java.util.Optional;
  * The AMA-based Container Insights agent writes per-container performance counters to the
  * {@code Perf} table ({@code ObjectName} = {@code K8SContainer}):
  * <ul>
- *   <li>{@code cpuUsageNanoCores}/{@code cpuLimitNanoCores}  - CPU usage/limit as a rate in nanoCores</li>
+ *   <li>{@code cpuUsageNanoCores}/{@code cpuLimitNanoCores} - CPU usage/limit as a rate in nanoCores</li>
  *   <li>{@code memoryWorkingSetBytes}/{@code memoryLimitBytes} - working-set memory in bytes</li>
  * </ul>
  * Each row's {@code InstanceName} ends with {@code <podUid>/<containerName>}, so records are joined
@@ -62,6 +62,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
     private LogsQueryClient logsClient;
 
+    /** Creates the Log Analytics client used for Container Insights queries. */
     @PostConstruct
     public void init() {
         var credential = new ClientSecretCredentialBuilder()
@@ -77,36 +78,43 @@ public class InsightsMetricsRepository implements MetricsRepository {
         log.info("Initialized Container Insights (Log Analytics) repository for workspace {}", workspaceId);
     }
 
+    /** Queries Container Insights CPU counters and returns percentage samples. */
     @Override
     public List<MetricPoint> getCpuUtilization(String resourceId, Duration timeRange) {
         return toPoints(resourceId, queryCombined(resourceId, timeRange), true);
     }
 
+    /** Queries Container Insights memory counters and returns percentage samples. */
     @Override
     public List<MetricPoint> getMemoryUtilization(String resourceId, Duration timeRange) {
         return toPoints(resourceId, queryCombined(resourceId, timeRange), false);
     }
 
+    /** Container Insights adapter has no active-request counter. */
     @Override
     public List<MetricPoint> getActiveRequestCount(String resourceId, Duration timeRange) {
         return List.of();
     }
 
+    /** Returns the combined CPU and memory series from one Kusto query. */
     @Override
     public List<MetricPoint> getAllMetrics(String resourceId, Duration timeRange) {
         return toPoints(resourceId, queryCombined(resourceId, timeRange), null);
     }
 
+    /** Returns the deployments currently exposed by the insights profile. */
     @Override
     public List<String> getMonitoredResourceIds() {
         return List.of("nginx-busy", "nginx-idle");
     }
 
+    /** Uses the shared default peak schedule for the insights deployment. */
     @Override
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return PeakHoursConfig.defaults();
     }
 
+    /** Discovers replica, pod resource, and node capacity values from Log Analytics. */
     @Override
     public CurrentConfig getCurrentConfig(String resourceId) {
         String range = timespan(CONFIG_LOOKBACK);
@@ -143,6 +151,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
         }
     }
 
+    /** Downloads one-minute samples for an exact UTC interval for snapshot export. */
     @Override
     public Optional<List<MetricPoint>> downloadRawMetrics(String resourceId, Instant start, Instant end) {
         OffsetDateTime from = start.atOffset(ZoneOffset.UTC);
@@ -230,6 +239,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
             """.formatted(startIso, endIso, namespace, resourceId, COUNTERS, startIso, endIso, stepSeconds);
     }
 
+    /** Converts nullable Log Analytics columns from nano-units and bytes to API units. */
     static CurrentConfig currentConfigFromValues(
             String resourceId,
             Double spec, Double avail, Double cpuReq, Double cpuLim,
@@ -256,12 +266,15 @@ public class InsightsMetricsRepository implements MetricsRepository {
         );
     }
 
+    /** Reads a nullable numeric column without making missing series fatal. */
     private static Double column(LogsTableRow row, String column) {
         return row.getColumnValue(column).map(c -> c.getValueAsDouble()).orElse(null);
     }
 
+    /** Internal normalized row produced by the Kusto result mapper. */
     private record Row(Instant timestamp, double cpuPct, double memPct) {}
 
+    /** Converts query rows into API points, selecting CPU, memory, or both fields. */
     private List<MetricPoint> toPoints(String resourceId, List<Row> rows, Boolean cpuOnly) {
         List<MetricPoint> points = new ArrayList<>();
         for (Row row : rows) {
@@ -275,6 +288,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
         return points;
     }
 
+    /** Executes a Kusto query and sorts valid rows by timestamp. */
     private List<Row> runQuery(String query, OffsetDateTime from, OffsetDateTime to) {
         QueryTimeInterval interval = new QueryTimeInterval(from, to);
         try {
@@ -308,6 +322,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
         }
     }
 
+    /** Builds a rolling query window with a range-dependent bucket size. */
     private List<Row> queryCombined(String resourceId, Duration timeRange) {
         String range = timespan(timeRange.plus(Duration.ofMinutes(5)));
         long step = stepSeconds(timeRange);
@@ -318,6 +333,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
         return runQuery(query, now.minus(timeRange).minus(Duration.ofMinutes(5)), now);
     }
 
+    /** Builds the rolling Container Insights CPU and memory query. */
     private String buildQuery(String resourceId, String range, long step) {
         return """
             let pod = KubePodInventory
@@ -343,6 +359,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
             """.formatted(range, POD_NAMESPACE, resourceId, COUNTERS, range, step);
     }
 
+    /** Maps a duration to the compact Kusto timespan syntax. */
     private static String timespan(Duration duration) {
         long seconds = duration.getSeconds();
         if (seconds >= 3600) {
@@ -351,6 +368,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
         return Math.max(1, (seconds + 59) / 60) + "m";
     }
 
+    /** Chooses one-minute, five-minute, or hourly aggregation for the range. */
     private static long stepSeconds(Duration timeRange) {
         long seconds = timeRange.getSeconds();
         if (seconds < 3600) return 60;
@@ -358,6 +376,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
         return 3600;
     }
 
+    /** Infers the public resource type from the Container Insights resource ID. */
     private String resourceType(String resourceId) {
         if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
         return "UNKNOWN";

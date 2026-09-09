@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Tests the recommendations controller behavior and regression cases. */
 class RecommendationsControllerTest {
 
     private final PeakHoursConfig functionConfig = new PeakHoursConfig(
@@ -32,6 +33,7 @@ class RecommendationsControllerTest {
         List.of(1, 2, 3, 4, 5, 6, 0), 55.0, 8.0, 10
     );
 
+    /** Verifies recommendations use resource specific peak hours config. */
     @Test
     void recommendationsUseResourceSpecificPeakHoursConfig() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
@@ -60,6 +62,7 @@ class RecommendationsControllerTest {
         assertEquals(120.0, costCaptor.getValue(), 0.001);
     }
 
+    /** Verifies kubernetes cluster recommendations estimate cost from resource type. */
     @Test
     void kubernetesClusterRecommendationsEstimateCostFromResourceType() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
@@ -86,6 +89,7 @@ class RecommendationsControllerTest {
         assertEquals(525.6, costCaptor.getValue(), 0.001);
     }
 
+    /** Verifies app service code generation uses app service template. */
     @Test
     void appServiceCodeGenerationUsesAppServiceTemplate() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);

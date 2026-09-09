@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { recommendationsApi } from '../services/api';
 import type { RecommendationResponse } from '../types/api';
 
+/** Requests and displays generated KEDA or Terraform scaling configuration. */
 export default function GenerateCodePage() {
   const { resourceId } = useParams<{ resourceId: string }>();
   const [result, setResult] = useState<RecommendationResponse | null>(null);

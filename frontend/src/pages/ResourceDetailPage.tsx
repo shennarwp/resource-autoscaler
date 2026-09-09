@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 
+/** Supported chart windows, expressed in the API's day-based duration unit. */
 const TIME_RANGES = [
   { label: '5m', days: 5 / 1440 },
   { label: '15m', days: 15 / 1440 },
@@ -20,6 +21,7 @@ const TIME_RANGES = [
   { label: '3m', days: 90 },
 ];
 
+/** Human-readable labels corresponding to {@link TIME_RANGES}. */
 const RANGE_LABELS: Record<number, string> = {
   [5 / 1440]: '5 minutes',
   [15 / 1440]: '15 minutes',
@@ -33,7 +35,7 @@ const RANGE_LABELS: Record<number, string> = {
   90: '3 months',
 };
 
-// How often to render an x-axis tick label, in minutes, per time range (in days).
+/** X-axis label cadence in minutes for each supported range. */
 const LABEL_EVERY_MINUTES: Record<number, number> = {
   [5 / 1440]: 1,
   [15 / 1440]: 1,
@@ -47,6 +49,7 @@ const LABEL_EVERY_MINUTES: Record<number, number> = {
   90: 5 * 24 * 60,
 };
 
+/** Shared tooltip styling for utilization charts. */
 const tooltipStyle = {
   backgroundColor: 'var(--bg-card)',
   border: '1px solid var(--border)',
@@ -56,11 +59,13 @@ const tooltipStyle = {
   padding: '8px 12px',
 };
 
+/** Fallback thresholds used before the backend schedule is available. */
 const DEFAULT_TARGETS_BY_RESOURCE: Record<string, { peak: number; offPeak: number }> = {
   'function-data-processor': { peak: 55, offPeak: 8 },
   default: { peak: 65, offPeak: 10 },
 };
 
+/** Renders the timestamp and utilization values under the active chart cursor. */
 function ChartTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload as DataPoint;
@@ -77,6 +82,7 @@ function ChartTooltip({ active, payload }: any) {
   );
 }
 
+/** Normalized chart point; timestamps are epoch milliseconds for Recharts. */
 interface DataPoint {
   t: number;
   cpu: number;
@@ -84,14 +90,14 @@ interface DataPoint {
   requests: number;
 }
 
-// Candidate label steps (ms) aligned to clock boundaries, used when the data
-// span is too short for the range's configured cadence to produce readable labels.
+/** Candidate clock-aligned tick intervals, in milliseconds. */
 const NICE_STEP_MS = [
   60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000,
   3_600_000, 7_200_000, 10_800_000, 21_600_000, 43_200_000,
   86_400_000, 172_800_000, 432_000_000,
 ];
 
+/** Produces tick timestamps within an inclusive chart domain. */
 function computeLabelTimes(minT: number, maxT: number, stepMs: number): number[] {
   const times: number[] = [];
   for (let t = Math.floor(minT / stepMs) * stepMs; t <= maxT; t += stepMs) {
@@ -100,11 +106,13 @@ function computeLabelTimes(minT: number, maxT: number, stepMs: number): number[]
   return times;
 }
 
+/** Chooses a readable cadence when the configured range cadence is too dense. */
 function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
   if (spanMs / rangeStepMs >= 4) return rangeStepMs;
   return NICE_STEP_MS.find((s) => s >= spanMs / 8) ?? NICE_STEP_MS[NICE_STEP_MS.length - 1];
 }
 
+/** Presents utilization charts, schedule targets, and scaling recommendations. */
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
   const [selectedDays, setSelectedDays] = useState(1);

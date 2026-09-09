@@ -8,8 +8,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/** Tests the azure metrics repository behavior and regression cases. */
 class AzureMetricsRepositoryTest {
 
+    /** Verifies merge by timestamp aligns series that drift apart. */
     @Test
     void mergeByTimestampAlignsSeriesThatDriftApart() {
         Instant t0 = Instant.parse("2026-09-08T10:00:00Z");

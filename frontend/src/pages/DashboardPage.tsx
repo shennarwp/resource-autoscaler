@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { metricsApi } from '../services/api';
 import { useCostAnalysis } from '../hooks/useApi';
 
+/** Shows monitored resources and the aggregate cost summary. */
 export default function DashboardPage() {
   const [resources, setResources] = useState<string[]>([]);
   const { analysis, loading: costLoading } = useCostAnalysis();

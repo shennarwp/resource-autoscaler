@@ -4,6 +4,7 @@ import ResourceDetailPage from './pages/ResourceDetailPage';
 import GenerateCodePage from './pages/GenerateCodePage';
 import CostAnalysisPage from './pages/CostAnalysisPage';
 
+/** Defines the client-side routes and shared navigation shell. */
 function App() {
   return (
     <BrowserRouter>

@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 @SpringBootTest
+/** Tests the resource metrics cache evictor behavior and regression cases. */
 class ResourceMetricsCacheEvictorTest {
 
     @Autowired
@@ -19,6 +20,7 @@ class ResourceMetricsCacheEvictorTest {
     @Autowired
     private ResourceMetricsCacheEvictor cacheEvictor;
 
+    /** Verifies cached snapshot is reused until evicted. */
     @Test
     void cachedSnapshotIsReusedUntilEvicted() {
         ResourceMetrics first = metricsService.collectMetrics("aks-primary-cluster", 30);

@@ -14,6 +14,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Tests the analysis service behavior and regression cases. */
 class AnalysisServiceTest {
 
     private final AnalysisService service = new AnalysisService();
@@ -42,6 +43,7 @@ class AnalysisServiceTest {
         );
     }
 
+    /** Verifies savings estimate is positive when off peak is below target. */
     @Test
     void savingsEstimateIsPositiveWhenOffPeakIsBelowTarget() {
         List<ScalingRecommendation> recs =
@@ -54,6 +56,7 @@ class AnalysisServiceTest {
         assertTrue(rec.estimatedMonthlySavingsUsd() > 0);
     }
 
+    /** Verifies recommendation is skipped when off peak bucket has no samples. */
     @Test
     void recommendationIsSkippedWhenOffPeakBucketHasNoSamples() {
         List<ScalingRecommendation> recs =
@@ -61,6 +64,7 @@ class AnalysisServiceTest {
         assertTrue(recs.isEmpty());
     }
 
+    /** Verifies recommendation is skipped when peak bucket has no samples. */
     @Test
     void recommendationIsSkippedWhenPeakBucketHasNoSamples() {
         List<ScalingRecommendation> recs =
@@ -68,6 +72,7 @@ class AnalysisServiceTest {
         assertTrue(recs.isEmpty());
     }
 
+    /** Verifies savings uses weekly off peak fraction for seven day peak window. */
     @Test
     void savingsUsesWeeklyOffPeakFractionForSevenDayPeakWindow() {
         PeakHoursConfig sevenDayConfig = new PeakHoursConfig(
@@ -81,6 +86,7 @@ class AnalysisServiceTest {
         assertEquals(100.0 / 3.0 * 0.5, recs.getFirst().estimatedSavingsPercentage(), 0.01);
     }
 
+    /** Verifies weekend days increase off peak weighting for same utilization. */
     @Test
     void weekendDaysIncreaseOffPeakWeightingForSameUtilization() {
         PeakHoursConfig sevenDayConfig = new PeakHoursConfig(
@@ -98,6 +104,7 @@ class AnalysisServiceTest {
         assertTrue(weekdaySavings > weekendIncludedSavings);
     }
 
+    /** Verifies kubernetes cluster gets keda recommendation. */
     @Test
     void kubernetesClusterGetsKedaRecommendation() {
         List<ScalingRecommendation> recs = service.analyzeAndRecommend(
@@ -113,6 +120,7 @@ class AnalysisServiceTest {
         assertTrue(rec.peakSchedule().endsWith(" UTC"));
     }
 
+    /** Verifies kubernetes cluster uses discovered current config. */
     @Test
     void kubernetesClusterUsesDiscoveredCurrentConfig() {
         List<ScalingRecommendation> recs = service.analyzeAndRecommend(
@@ -127,6 +135,7 @@ class AnalysisServiceTest {
         assertTrue(rec.recommendedConfiguration().contains("5 replicas"));
     }
 
+    /** Verifies kubernetes cluster without discoverable config is honest about it. */
     @Test
     void kubernetesClusterWithoutDiscoverableConfigIsHonestAboutIt() {
         List<ScalingRecommendation> recs = service.analyzeAndRecommend(
@@ -137,6 +146,7 @@ class AnalysisServiceTest {
         assertTrue(recs.getFirst().currentConfiguration().contains("No cluster config discovered"));
     }
 
+    /** Verifies confidence score never claims certainty. */
     @Test
     void confidenceScoreNeverClaimsCertainty() {
         List<ScalingRecommendation> recs =
@@ -146,6 +156,7 @@ class AnalysisServiceTest {
         assertEquals(0.95, recs.getFirst().confidenceScore(), 0.001);
     }
 
+    /** Verifies rationale describes observed pattern and rounded estimate. */
     @Test
     void rationaleDescribesObservedPatternAndRoundedEstimate() {
         List<ScalingRecommendation> recs =

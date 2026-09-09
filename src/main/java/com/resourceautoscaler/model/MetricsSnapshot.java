@@ -17,5 +17,6 @@ public record MetricsSnapshot(
     CurrentConfig currentConfig,
     List<Point> dataPoints
 ) {
+    /** Serializable metric sample stored in an exported snapshot. */
     public record Point(String timestamp, double cpuUtilization, double memoryUtilization, int activeRequestCount) {}
 }

@@ -7,9 +7,11 @@ import io.swagger.v3.oas.models.info.License;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Publishes the service metadata shown by the generated OpenAPI document. */
 @Configuration
 public class OpenApiConfig {
 
+    /** Builds the API title, contact, version, and license metadata. */
     @Bean
     public OpenAPI resourceAutoscalerOpenAPI() {
         return new OpenAPI()
