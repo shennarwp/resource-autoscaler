@@ -3,6 +3,7 @@ package com.resourceautoscaler.repository;
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.MetricsSnapshot;
+import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.store.SnapshotStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -133,6 +135,36 @@ class MockMetricsRepositoryTest {
 
         List<MetricPoint> served = repo.getAllMetrics("nginx-busy", Duration.ofHours(3));
         assertEquals(expected, served.stream().map(MetricPoint::timestamp).toList());
+    }
+
+    @Test
+    void weekendTilesRenderIdleWhereasWeekdaysKeepLoad() {
+        MetricsSnapshot snap = daySnapshot();
+        Instant end = Instant.parse("2026-09-08T17:59:00Z");
+        Instant start = end.minus(Duration.ofDays(4)); // Fri..Tue, spans Sat/Sun
+
+        List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
+
+        assertTrue(points.stream().anyMatch(p -> isWeekend(p.timestamp())));
+        assertTrue(points.stream().filter(p -> isWeekend(p.timestamp()))
+                .allMatch(p -> p.cpuUtilization() == 0.0));
+        assertTrue(points.stream().filter(p -> !isWeekend(p.timestamp()))
+                .anyMatch(p -> p.cpuUtilization() > 0.0));
+    }
+
+    @Test
+    void peakConfigForNginxBusyMatchesDeployedSchedule() {
+        MockMetricsRepository repo = new MockMetricsRepository(new SnapshotStore(tempDir.toString()), "nginx-busy");
+        PeakHoursConfig cfg = repo.getPeakHoursConfig("nginx-busy");
+        assertEquals(LocalTime.of(5, 0), cfg.peakStart());
+        assertEquals(LocalTime.of(16, 0), cfg.peakEnd());
+        assertEquals(List.of(1, 2, 3, 4, 5), cfg.peakDaysOfWeek());
+        assertEquals(50.0, cfg.peakTargetUtilization(), 0.001);
+    }
+
+    private static boolean isWeekend(Instant ts) {
+        int dow = ts.atZone(java.time.ZoneOffset.UTC).getDayOfWeek().getValue();
+        return dow == 6 || dow == 7;
     }
 
     @Test
