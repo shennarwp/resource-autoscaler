@@ -168,8 +168,28 @@ public class MockMetricsRepository implements MetricsRepository {
                 || kubeSnapshot.dataPoints() == null || kubeSnapshot.dataPoints().isEmpty()) {
             return null;
         }
-        Instant end = Instant.parse(kubeSnapshot.dataPoints().getLast().timestamp());
+        Instant end = alignedWindowEnd(kubeSnapshot, Instant.now());
         return samplesForRange(kubeSnapshot, end.minus(timeRange), end, resourceId);
+    }
+
+    /**
+     * Maps the wall-clock time of {@code now} onto the snapshot's last day so the
+     * replay window tracks tick-by-tick clock alignment (e.g. "now, 3h back")
+     * against the downloaded sample day, rather than always ending at the snapshot's
+     * newest data point. If now's clock time is past the newest data point, the end
+     * is clamped to it. Exposed as static so the mapping is unit-testable.
+     */
+    static Instant alignedWindowEnd(MetricsSnapshot snapshot, Instant now) {
+        List<MetricsSnapshot.Point> points = snapshot.dataPoints();
+        if (points == null || points.isEmpty()) {
+            return now;
+        }
+        Instant last = Instant.parse(points.get(points.size() - 1).timestamp());
+        java.time.ZonedDateTime lastDay = last.atZone(java.time.ZoneOffset.UTC);
+        java.time.LocalTime clock = now.atZone(java.time.ZoneOffset.UTC).toLocalTime()
+                .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+        Instant candidate = lastDay.with(clock).toInstant();
+        return candidate.isAfter(last) ? last : candidate;
     }
 
     /**
