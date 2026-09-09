@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** Tests the azure metrics repository behavior and regression cases. */
 class AzureMetricsRepositoryTest {
 
-    /** Verifies merge by timestamp aligns series that drift apart. */
+    /** Verifies merge uses CPU timestamps and ignores orphaned secondary samples. */
     @Test
-    void mergeByTimestampAlignsSeriesThatDriftApart() {
+    void mergeByTimestampUsesCpuTimeline() {
         Instant t0 = Instant.parse("2026-09-08T10:00:00Z");
         Instant t1 = Instant.parse("2026-09-08T11:00:00Z");
         Instant t2 = Instant.parse("2026-09-08T12:00:00Z");
@@ -31,19 +31,15 @@ class AzureMetricsRepositoryTest {
         List<MetricPoint> merged =
             AzureMetricsRepository.mergeByTimestamp("autoscaler-busy", "APP_SERVICE", cpu, mem, req);
 
-        assertEquals(3, merged.size());
+        assertEquals(2, merged.size());
         assertEquals(t0, merged.get(0).timestamp());
         assertEquals(80, merged.get(0).cpuUtilization(), 0.001);
         assertEquals(0, merged.get(0).memoryUtilization(), 0.001);
         assertEquals(100, merged.get(0).activeRequestCount());
-        assertEquals(t1, merged.get(1).timestamp());
-        assertEquals(0, merged.get(1).cpuUtilization(), 0.001);
-        assertEquals(40, merged.get(1).memoryUtilization(), 0.001);
-        assertEquals(200, merged.get(1).activeRequestCount());
-        assertEquals(t2, merged.get(2).timestamp());
-        assertEquals(90, merged.get(2).cpuUtilization(), 0.001);
-        assertEquals(0, merged.get(2).memoryUtilization(), 0.001);
-        assertEquals(300, merged.get(2).activeRequestCount());
+        assertEquals(t2, merged.get(1).timestamp());
+        assertEquals(90, merged.get(1).cpuUtilization(), 0.001);
+        assertEquals(0, merged.get(1).memoryUtilization(), 0.001);
+        assertEquals(300, merged.get(1).activeRequestCount());
     }
 
     private MetricPoint point(Instant timestamp, double cpu) {

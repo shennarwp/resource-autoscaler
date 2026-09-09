@@ -20,7 +20,8 @@ class InsightsMetricsRepositoryTest {
         assertTrue(query.contains("tags.deployment) == 'nginx-busy'"));
         assertTrue(query.contains("where Name startswith 'nginx-busy-'"));
         assertTrue(query.contains("CounterName in ('cpuRequestNanoCores','cpuLimitNanoCores','memoryRequestBytes','memoryLimitBytes')"));
-        assertTrue(query.contains("CounterName == 'cpuCapacityNanoCores'"));
+        assertTrue(query.contains("cpuReq = sum(case(CounterName=='cpuRequestNanoCores'"));
+        assertFalse(query.contains("cpuCapacityNanoCores"));
     }
 
     /** Verifies export query binds explicit exact window with sixty second step. */
@@ -93,5 +94,14 @@ class InsightsMetricsRepositoryTest {
         assertEquals(0.0, config.memoryLimitGiB(), 0.0);
         assertEquals(0, config.nodeCount());
         assertEquals(0.0, config.nodeCpuCores(), 0.0);
+    }
+
+    @Test
+    void rejectsUnsafeResourceIdsBeforeBuildingQueries() {
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> InsightsMetricsRepository.buildExportQuery(
+                "nginx-busy'; drop table Perf", "2026-09-08T05:00:00Z",
+                "2026-09-08T09:00:00Z", 60, "default"));
     }
 }

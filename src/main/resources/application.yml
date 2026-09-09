@@ -28,6 +28,8 @@ app:
     peak-target-utilization: 65.0
     off-peak-target-utilization: 10.0
     scaling-cooldown-minutes: 15
+  azure:
+    resources: "autoscaler-busy,autoscaler-idle"
   cost-analysis:
     currency: USD
     analysis-period-days: 30

@@ -143,9 +143,9 @@ class MockMetricsRepositoryTest {
         assertEquals(expected, served.stream().map(MetricPoint::timestamp).toList());
     }
 
-    /** Verifies weekend tiles render baseline usage instead of zero cpu. */
+    /** Verifies weekend tiles render idle CPU and no requests. */
     @Test
-    void weekendTilesRenderBaselineUsageInsteadOfZeroCpu() {
+    void weekendTilesRenderIdleUsage() {
         MetricsSnapshot snap = daySnapshot();
         Instant end = Instant.parse("2026-09-08T17:59:00Z");
         Instant start = end.minus(Duration.ofDays(4)); // Fri..Tue, spans Sat/Sun
@@ -153,9 +153,8 @@ class MockMetricsRepositoryTest {
         List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
 
         assertTrue(points.stream().anyMatch(p -> isWeekend(p.timestamp())));
-        assertTrue(points.stream().allMatch(p -> p.cpuUtilization() > 0.0));
         assertTrue(points.stream().filter(p -> isWeekend(p.timestamp()))
-                .allMatch(p -> p.cpuUtilization() >= 7.0 && p.cpuUtilization() <= 15.0));
+                .allMatch(p -> p.cpuUtilization() == 0.0 && p.activeRequestCount() == 0));
         assertTrue(points.stream().filter(p -> !isWeekend(p.timestamp()))
                 .anyMatch(p -> p.cpuUtilization() > 0.0));
     }
