@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class ResourceAutoscalerApplication {
 
     /** Starts the API using the active Spring profile and command-line options. */
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(ResourceAutoscalerApplication.class, args);
     }
 }

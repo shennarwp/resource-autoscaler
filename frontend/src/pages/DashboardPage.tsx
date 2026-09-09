@@ -6,7 +6,7 @@ import { useCostAnalysis } from '../hooks/useApi';
 /** Shows monitored resources and the aggregate cost summary. */
 export default function DashboardPage() {
   const [resources, setResources] = useState<string[]>([]);
-  const { analysis, loading: costLoading } = useCostAnalysis();
+  const { analysis, loading: costLoading, error: costError } = useCostAnalysis();
 
   useEffect(() => {
     metricsApi.getMonitoredResources().then(setResources);
@@ -44,6 +44,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {costError && <div className="error" style={{ marginBottom: '1rem' }}>Failed to load cost data: {costError}</div>}
       <h2>Monitored Resources</h2>
       <div className="resource-grid">
         {resources.map((resourceId) => (

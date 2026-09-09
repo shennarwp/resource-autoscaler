@@ -81,9 +81,9 @@ public class MockMetricsRepository implements MetricsRepository {
                     .toList();
         }
         if ("appservice-api-gateway".equals(resourceId)) {
-            return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 40.0, 40.0, 5.0);
+            return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 40.0, 40.0);
         }
-        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 75.0, 5.0, 15.0);
+        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 75.0, 5.0);
     }
 
     /** Replays memory samples or generates mock memory data for the requested window. */
@@ -95,7 +95,7 @@ public class MockMetricsRepository implements MetricsRepository {
                     .map(p -> new MetricPoint(p.timestamp(), 0, p.memoryUtilization(), 0, resourceId, getResourceType(resourceId)))
                     .toList();
         }
-        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 55.0, 12.0, 10.0);
+        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 55.0, 12.0);
     }
 
     /** Replays request samples or generates mock request data for the requested window. */
@@ -107,7 +107,7 @@ public class MockMetricsRepository implements MetricsRepository {
                     .map(p -> new MetricPoint(p.timestamp(), 0, 0, p.activeRequestCount(), resourceId, getResourceType(resourceId)))
                     .toList();
         }
-        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 200.0, 5.0, 50.0);
+        return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 200.0, 5.0);
     }
 
     /** Returns a snapshot unchanged or merges generated metric streams. */
@@ -271,7 +271,7 @@ public class MockMetricsRepository implements MetricsRepository {
     private List<MetricPoint> generateSineWaveMetrics(
             String resourceId, Duration timeRange,
             int peakStartHour, int peakEndHour,
-            double peakBase, double offPeakBase, double amplitude
+            double peakBase, double offPeakBase
     ) {
         Instant end = Instant.now();
         Instant start = end.minus(timeRange);

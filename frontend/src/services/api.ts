@@ -1,8 +1,8 @@
 import axios from 'axios';
 import type { MetricsResponse, CostAnalysis, ScalingRecommendation, RecommendationResponse, PeakHoursConfig } from '../types/api';
 
-/** Backend base URL; deployments may override the local development default. */
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+/** Backend base URL; defaults to a relative path that rides the nginx proxy. Set VITE_API_BASE_URL for local dev without nginx. */
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -47,16 +47,14 @@ export const recommendationsApi = {
   /** Requests code for a resource, returning no body when no recommendation applies. */
   generateCode: async (
     resourceId: string,
-    peakStart = '07:00',
-    peakEnd = '18:00',
+    peakStart?: string,
+    peakEnd?: string,
     currentMonthlyCostUsd = 0
   ): Promise<RecommendationResponse> => {
-    const { data } = await api.post<RecommendationResponse>('/recommendations/generate', {
-      resourceId,
-      peakStart,
-      peakEnd,
-      currentMonthlyCostUsd,
-    });
+    const body: Record<string, unknown> = { resourceId, currentMonthlyCostUsd };
+    if (peakStart !== undefined) body.peakStart = peakStart;
+    if (peakEnd !== undefined) body.peakEnd = peakEnd;
+    const { data } = await api.post<RecommendationResponse>('/recommendations/generate', body);
     return data;
   },
 };

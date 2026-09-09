@@ -34,7 +34,7 @@ describe('API clients', () => {
     expect(get).toHaveBeenNthCalledWith(3, '/metrics/vm-1/peak-config');
   });
 
-  it('applies recommendation defaults and posts generated-code requests', async () => {
+  it('posts generated-code requests without optional peak overrides', async () => {
     get.mockResolvedValueOnce({ data: [] });
     post.mockResolvedValueOnce({ data: { recommendation: {} } });
 
@@ -44,8 +44,6 @@ describe('API clients', () => {
     expect(get).toHaveBeenCalledWith('/recommendations/vm-1', { params: { days: 30 } });
     expect(post).toHaveBeenCalledWith('/recommendations/generate', {
       resourceId: 'vm-1',
-      peakStart: '07:00',
-      peakEnd: '18:00',
       currentMonthlyCostUsd: 0,
     });
   });

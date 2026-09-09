@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import ResourceDetailPage from './ResourceDetailPage';
 import { useMetrics, usePeakHoursConfig, useRecommendations } from '../hooks/useApi';
+import * as React from "react";
 
 vi.mock('../hooks/useApi', () => ({
   useMetrics: vi.fn(),
