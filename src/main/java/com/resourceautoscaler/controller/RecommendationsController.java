@@ -86,6 +86,8 @@ public class RecommendationsController {
 
         if (rec.recommendationType() == ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT) {
             kedaYaml = codeGenerationService.generateKedaScaledObject(rec);
+        } else if (rec.resourceType() == ScalingRecommendation.ResourceType.AZURE_APP_SERVICE) {
+            terraformHcl = codeGenerationService.generateAppServiceAutoscale(rec);
         } else {
             terraformHcl = codeGenerationService.generateTerraformAutoscale(rec);
         }
