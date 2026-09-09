@@ -136,4 +136,13 @@ class AnalysisServiceTest {
         assertEquals(1, recs.size());
         assertTrue(recs.getFirst().currentConfiguration().contains("No cluster config discovered"));
     }
+
+    @Test
+    void confidenceScoreNeverClaimsCertainty() {
+        List<ScalingRecommendation> recs =
+            service.analyzeAndRecommend(metricsWith(80, 0, 1000, 1000), config, 100.0, unknownConfig);
+
+        assertEquals(1, recs.size());
+        assertEquals(0.95, recs.getFirst().confidenceScore(), 0.001);
+    }
 }

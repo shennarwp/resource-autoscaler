@@ -93,21 +93,25 @@ public class AnalysisService {
             ResourceMetrics.AggregatedStats stats,
             PeakHoursConfig config
     ) {
-        double score = 0.5;
+        if (stats.peakSampleCount() == 0 || stats.offPeakSampleCount() == 0) {
+            return 0.0;
+        }
 
-        if (stats.offPeakHourUtilization() < 20.0) score += 0.2;
-        if (stats.offPeakHourUtilization() < 5.0) score += 0.15;
+        double score = 0.35;
+        double sampleCoverage = Math.min(stats.peakSampleCount() / 100.0, 1.0)
+            + Math.min(stats.offPeakSampleCount() / 200.0, 1.0);
+        score += 0.2 * (sampleCoverage / 2.0);
+
+        if (stats.offPeakHourUtilization() < 20.0) score += 0.15;
+        if (stats.offPeakHourUtilization() < 5.0) score += 0.1;
         if (stats.peakHourUtilization() > config.peakTargetUtilization() + 10.0) score += 0.15;
 
         double utilRatio = stats.offPeakHourUtilization() > 0.0
             ? stats.peakHourUtilization() / stats.offPeakHourUtilization()
-            : Double.POSITIVE_INFINITY;
-        if (utilRatio > 3.0) score += 0.15;
-        if (utilRatio > 5.0) score += 0.1;
-        if (stats.peakSampleCount() > 100) score += 0.1;
-        if (stats.offPeakSampleCount() > 200) score += 0.1;
+            : 6.0;
+        score += Math.min(Math.max(utilRatio - 1.0, 0.0) / 5.0, 1.0) * 0.1;
 
-        return Math.min(score, 1.0);
+        return Math.min(score, 0.95);
     }
 
     private ScalingRecommendation.RecommendationType determineRecommendationType(String resourceType) {
