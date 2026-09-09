@@ -88,9 +88,52 @@ The generated configuration is an implementation starting point: review resource
 
 | Profile | Description |
 |---------|-------------|
-| `mock` | Default. Synthetic sine-wave data (peak 07:00-18:00, off-peak low). Zero cloud cost. |
+| `mock` | Default. Local metrics source with snapshot replay or synthetic fallback data. No Azure access or cloud cost. |
 | `azure` | Real Azure Monitor integration (e.g. Azure App Service). Requires service principal credentials (see below). |
 | `insights` | Real cluster metrics from Azure Monitor Container Insights (Log Analytics). Requires service principal credentials + Log Analytics Reader on the workspace (see below). |
+
+### Mock Profile
+
+The mock profile runs without Azure credentials and exercises the same metrics,
+classification, recommendation, cost-analysis, and code-generation pipeline as
+the cloud-backed profiles.
+
+By default it monitors the `nginx-busy` Kubernetes resource:
+
+```yaml
+app:
+  mock:
+    kubernetes-id: nginx-busy
+```
+
+Its peak schedule is configured in UTC:
+
+- Peak: Monday-Friday, `05:00-16:00`
+- Peak CPU target: `50%`
+- Off-peak CPU target: `18%`
+- Default scaling cooldown: `15` minutes
+
+When `data/metrics/<resource-id>.json` exists, the repository loads that
+snapshot at startup and replays it for requested time ranges. Replay windows
+follow the current wall-clock time mapped onto the snapshot day, tile shorter
+snapshots across longer ranges, downsample long ranges, render weekends as idle,
+and add a small `7-15%` CPU baseline to low-CPU weekday samples so charts do
+not appear as misleading flat zeroes.
+
+If no snapshot is available, the repository generates local sine-wave CPU,
+memory, and request metrics. The generated workload is higher during weekday
+daytime hours and lower outside that window. The mock repository also supplies
+sample current Kubernetes configuration, including replicas, CPU/memory
+requests and limits, node count, and node capacity.
+
+Snapshots can be exported through:
+
+```text
+POST /api/v1/metrics/{resourceId}/snapshot?start={instant}&end={instant}
+```
+
+The exported snapshot is written to the configured `app.snapshot.dir`
+(default: `data/metrics`) and is replayed by the mock profile after restart.
 
 ### Azure Profile Setup
 
