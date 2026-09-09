@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Default profile repository. The mock UI shows only the Kubernetes cluster
@@ -35,7 +36,7 @@ public class MockMetricsRepository implements MetricsRepository {
         "nginx-busy", new PeakHoursConfig(
             LocalTime.of(5, 0), LocalTime.of(16, 0),
             List.of(1, 2, 3, 4, 5),
-            50.0, 10.0, 15
+            50.0, 18.0, 15
         ),
         "aks-primary-cluster", PeakHoursConfig.defaults(),
         "vm-backend-01", PeakHoursConfig.defaults(),
@@ -200,7 +201,9 @@ public class MockMetricsRepository implements MetricsRepository {
     /**
      * Replays the snapshot's samples for an arbitrary window by tiling the snapshot's
      * span (most recent copy first) and returning points falling inside the window,
-     * downsampled to the step cadence of the requested range. Exposed as static so
+     * downsampled to the step cadence of the requested range. Weekend days render a
+     * light baseline in place of the tiled workload, and any zero-cpu sample gets a
+     * random 7-15% baseline so idle points are never a flat 0. Exposed as static so
      * the propagation logic is unit-testable.
      */
     static List<MetricPoint> samplesForRange(MetricsSnapshot snapshot, Instant start, Instant end, String resourceId) {
@@ -235,9 +238,13 @@ public class MockMetricsRepository implements MetricsRepository {
                 lastBucket = bucket;
                 int weekday = ts.atZone(java.time.ZoneOffset.UTC).getDayOfWeek().getValue();
                 boolean weekend = weekday == 6 || weekday == 7;
+                double cpu = weekend ? 0.0 : p.cpuUtilization();
+                if (cpu < 7.0) {
+                    cpu = ThreadLocalRandom.current().nextDouble(7.0, 15.0);
+                }
                 result.add(new MetricPoint(
                     ts,
-                    weekend ? 0.0 : p.cpuUtilization(),
+                    cpu,
                     p.memoryUtilization(),
                     weekend ? 0 : p.activeRequestCount(),
                     resourceId, resourceType
