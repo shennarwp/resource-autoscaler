@@ -3,10 +3,7 @@ package com.resourceautoscaler.repository;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.monitor.query.LogsQueryClient;
 import com.azure.monitor.query.LogsQueryClientBuilder;
-import com.azure.monitor.query.models.LogsQueryResult;
-import com.azure.monitor.query.models.LogsQueryResultStatus;
-import com.azure.monitor.query.models.LogsTableRow;
-import com.azure.monitor.query.models.QueryTimeInterval;
+import com.azure.monitor.query.models.*;
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
@@ -269,7 +266,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
     /** Reads a nullable numeric column without making missing series fatal. */
     private static Double column(LogsTableRow row, String column) {
-        return row.getColumnValue(column).map(c -> c.getValueAsDouble()).orElse(null);
+        return row.getColumnValue(column).map(LogsTableCell::getValueAsDouble).orElse(null);
     }
 
     /** Internal normalized row produced by the Kusto result mapper. */
@@ -305,14 +302,14 @@ public class InsightsMetricsRepository implements MetricsRepository {
             List<Row> rows = new ArrayList<>();
             for (LogsTableRow r : result.getTable().getRows()) {
                 String ts = r.getColumnValue("TimeGenerated")
-                        .map(c -> c.getValueAsString()).orElse(null);
-                Double cpu = r.getColumnValue("cpuPct")
-                        .map(c -> c.getValueAsDouble()).orElse(0.0);
-                Double mem = r.getColumnValue("memPct")
-                        .map(c -> c.getValueAsDouble()).orElse(0.0);
+                        .map(LogsTableCell::getValueAsString).orElse(null);
+                double cpu = r.getColumnValue("cpuPct")
+                        .map(LogsTableCell::getValueAsDouble).orElse(0.0);
+                double mem = r.getColumnValue("memPct")
+                        .map(LogsTableCell::getValueAsDouble).orElse(0.0);
                 if (ts != null) {
                     rows.add(new Row(OffsetDateTime.parse(ts).toInstant(),
-                            cpu == null ? 0 : cpu, mem == null ? 0 : mem));
+                            cpu, mem));
                 }
             }
             rows.sort(java.util.Comparator.comparing(Row::timestamp));
