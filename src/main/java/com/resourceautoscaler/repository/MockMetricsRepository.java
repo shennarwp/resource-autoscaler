@@ -32,6 +32,11 @@ public class MockMetricsRepository implements MetricsRepository {
     private static final Logger log = LoggerFactory.getLogger(MockMetricsRepository.class);
 
     private static final Map<String, PeakHoursConfig> PEAK_CONFIGS = Map.of(
+        "nginx-busy", new PeakHoursConfig(
+            LocalTime.of(5, 0), LocalTime.of(16, 0),
+            List.of(1, 2, 3, 4, 5),
+            50.0, 10.0, 15
+        ),
         "aks-primary-cluster", PeakHoursConfig.defaults(),
         "vm-backend-01", PeakHoursConfig.defaults(),
         "appservice-api-gateway", PeakHoursConfig.defaults(),
@@ -228,8 +233,13 @@ public class MockMetricsRepository implements MetricsRepository {
                     continue;
                 }
                 lastBucket = bucket;
+                int weekday = ts.atZone(java.time.ZoneOffset.UTC).getDayOfWeek().getValue();
+                boolean weekend = weekday == 6 || weekday == 7;
                 result.add(new MetricPoint(
-                    ts, p.cpuUtilization(), p.memoryUtilization(), p.activeRequestCount(),
+                    ts,
+                    weekend ? 0.0 : p.cpuUtilization(),
+                    p.memoryUtilization(),
+                    weekend ? 0 : p.activeRequestCount(),
                     resourceId, resourceType
                 ));
             }
