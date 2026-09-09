@@ -22,6 +22,15 @@ class InsightsMetricsRepositoryTest {
     }
 
     @Test
+    void configQuerySumsRawNodeCapacityWithoutAliasingArgMax() {
+        String query = InsightsMetricsRepository.buildConfigQuery("nginx-busy", "24h", "default");
+
+        assertTrue(query.contains("summarize arg_max(TimeGenerated, CounterValue) by Computer"));
+        assertTrue(query.contains("cpuCores = sum(CounterValue)"));
+        assertFalse(query.contains("c = arg_max"));
+    }
+
+    @Test
     void exportQueryBindsExplicitExactWindowWithSixtySecondStep() {
         String query = InsightsMetricsRepository.buildExportQuery(
                 "nginx-busy", "2026-09-08T05:00:00Z", "2026-09-08T09:00:00Z", 60, "default");

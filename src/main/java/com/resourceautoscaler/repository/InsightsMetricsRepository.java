@@ -191,8 +191,8 @@ public class InsightsMetricsRepository implements MetricsRepository {
             | where TimeGenerated > start
             | where ObjectName == 'K8SNode'
             | where CounterName == 'cpuCapacityNanoCores'
-            | summarize c = arg_max(TimeGenerated, CounterValue) by Computer
-            | summarize nodeCount = count(), cpuCores = sum(c) by _key = 1;
+            | summarize arg_max(TimeGenerated, CounterValue) by Computer
+            | summarize nodeCount = count(), cpuCores = sum(CounterValue) by _key = 1;
             deployments
             | join kind=leftouter (containers) on _key
             | join kind=leftouter (nodes) on _key
