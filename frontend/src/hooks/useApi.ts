@@ -36,7 +36,7 @@ export function usePeakHoursConfig(resourceId: string | null): PeakHoursConfig |
       .then((config) => {
         if (!cancelled) setConfig(config);
       })
-      .catch(() => {});
+      .catch((err) => console.warn('Failed to load peak hours config:', err.message));
     return () => {
       cancelled = true;
     };

@@ -3,7 +3,6 @@ package com.resourceautoscaler.controller;
 import com.resourceautoscaler.dto.RecommendationRequest;
 import com.resourceautoscaler.dto.RecommendationResponse;
 import com.resourceautoscaler.model.CurrentConfig;
-import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
@@ -127,6 +126,7 @@ class RecommendationsControllerTest {
 
         RecommendationResponse response = controller.generateCode(request).getBody();
 
+        assert response != null;
         assertEquals("app-service-hcl", response.terraformHcl());
         org.mockito.Mockito.verify(codeGenerationService).generateAppServiceAutoscale(recommendation);
         org.mockito.Mockito.verify(codeGenerationService, org.mockito.Mockito.never())

@@ -64,8 +64,7 @@ public class CodeGenerationService {
                 appName,
                 peakStart,
                 peakEnd,
-                peakEnd,
-                peakStart
+                peakEnd
             );
     }
 
@@ -171,13 +170,6 @@ public class CodeGenerationService {
     public String generateTerraformAutoscale(ScalingRecommendation recommendation) {
         String resourceName = recommendation.resourceName().toLowerCase().replace(" ", "_");
         String resourceType = getTerraformResourceType(recommendation.resourceType());
-        String unqualifiedType = switch (recommendation.resourceType()) {
-            case AZURE_VM -> "linux_virtual_machine";
-            case AZURE_APP_SERVICE -> "service_plan";
-            case AZURE_FUNCTION -> "linux_function_app";
-            case AKS_DEPLOYMENT -> "kubernetes_cluster";
-            default -> "linux_virtual_machine";
-        };
 
         return """
             resource "azurerm_monitor_autoscale_setting" "%s_autoscale" {
@@ -316,7 +308,6 @@ public class CodeGenerationService {
             case AZURE_APP_SERVICE -> "service_plan";
             case AZURE_FUNCTION -> "linux_function_app";
             case AKS_DEPLOYMENT -> "kubernetes_cluster";
-            default -> "linux_virtual_machine";
         };
     }
 }

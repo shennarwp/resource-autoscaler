@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CostAnalysisPage from './CostAnalysisPage';
 import { useCostAnalysis } from '../hooks/useApi';
+import * as React from "react";
 
 vi.mock('../hooks/useApi', () => ({ useCostAnalysis: vi.fn() }));
 vi.mock('recharts', () => {

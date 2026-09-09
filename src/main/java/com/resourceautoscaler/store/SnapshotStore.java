@@ -32,9 +32,20 @@ public class SnapshotStore {
                 .enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
+    /** Pattern that matches valid resource identifiers (alphanumeric, dots, hyphens, underscores). */
+    private static final java.util.regex.Pattern RESOURCE_ID_PATTERN =
+            java.util.regex.Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]*");
+
     /** Resolves the stable JSON path for a resource identifier. */
     public Path snapshotFile(String resourceId) {
+        validateResourceId(resourceId);
         return snapshotDir.resolve(resourceId + ".json");
+    }
+
+    private static void validateResourceId(String resourceId) {
+        if (resourceId == null || !RESOURCE_ID_PATTERN.matcher(resourceId).matches()) {
+            throw new IllegalArgumentException("Invalid resource ID: " + resourceId);
+        }
     }
 
     /** Serializes and replaces a snapshot, creating its directory if needed. */

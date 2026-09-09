@@ -33,6 +33,8 @@ app:
   cost-analysis:
     currency: USD
     analysis-period-days: 30
+  cors:
+    allowed-origins: "http://localhost:5173,http://localhost:3000"
 
 springdoc:
   api-docs:
