@@ -203,14 +203,17 @@ public class AnalysisService {
             double savingsPercent
     ) {
         double roundedSavings = Math.round(savingsPercent * 10.0) / 10.0;
+        double offPeakIdleFraction = Math.max(0.0, Math.min(1.0, offPeakHoursFraction(config))) * 100.0;
+
         return String.format(
-            "Detected significant utilization gap: peak hours avg %.1f%% CPU vs off-peak avg %.1f%% CPU. " +
-            "Off-peak resources are idle for ~%.0f%% of the week. " +
-            "Applying schedule-based scaling to reduce off-peak provisioned capacity " +
-            "yields an estimated %.1f%% cost reduction with minimal risk.",
+            "Observed utilization pattern: peak hours average %.1f%% CPU while off-peak hours average %.1f%% CPU. " +
+            "Based on the configured %s-%s UTC schedule, about %.0f%% of the week is outside the peak window. " +
+            "Using the current observed utilization gap and target thresholds, the estimated savings are %.1f%% of monthly spend.",
             stats.peakHourUtilization(),
             stats.offPeakHourUtilization(),
-            offPeakHoursFraction(config) * 100,
+            config.peakStart(),
+            config.peakEnd(),
+            offPeakIdleFraction,
             roundedSavings
         );
     }
