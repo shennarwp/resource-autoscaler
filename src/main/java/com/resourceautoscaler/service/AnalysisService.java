@@ -70,9 +70,9 @@ public class AnalysisService {
         double offPeakRatio = config.offPeakTargetUtilization() > 0
             ? Math.min(stats.offPeakHourUtilization() / config.offPeakTargetUtilization(), 1.0)
             : 1.0;
-        double offPeakReduction = 1.0 - offPeakRatio;
+        double offPeakReduction = Math.max(0.0, 1.0 - offPeakRatio);
 
-        return offPeakHoursFraction * offPeakReduction * 100.0;
+        return Math.max(0.0, offPeakHoursFraction * offPeakReduction * 100.0);
     }
 
     private double peakHoursPerDay(PeakHoursConfig config) {
@@ -95,10 +95,17 @@ public class AnalysisService {
     ) {
         double score = 0.5;
 
-        if (stats.offPeakHourUtilization() < 15.0) score += 0.2;
-        if (stats.offPeakHourUtilization() < 5.0) score += 0.1;
-        if (stats.peakHourUtilization() > 50.0) score += 0.1;
-        if (stats.maxCpuUtilization() - stats.offPeakHourUtilization() > 40.0) score += 0.1;
+        if (stats.offPeakHourUtilization() < 20.0) score += 0.2;
+        if (stats.offPeakHourUtilization() < 5.0) score += 0.15;
+        if (stats.peakHourUtilization() > config.peakTargetUtilization() + 10.0) score += 0.15;
+
+        double utilRatio = stats.offPeakHourUtilization() > 0.0
+            ? stats.peakHourUtilization() / stats.offPeakHourUtilization()
+            : Double.POSITIVE_INFINITY;
+        if (utilRatio > 3.0) score += 0.15;
+        if (utilRatio > 5.0) score += 0.1;
+        if (stats.peakSampleCount() > 100) score += 0.1;
+        if (stats.offPeakSampleCount() > 200) score += 0.1;
 
         return Math.min(score, 1.0);
     }
