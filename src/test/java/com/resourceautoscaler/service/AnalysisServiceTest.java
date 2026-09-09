@@ -109,6 +109,8 @@ class AnalysisServiceTest {
         assertEquals(ScalingRecommendation.ResourceType.AKS_DEPLOYMENT, rec.resourceType());
         assertTrue(rec.currentConfiguration().contains("3 replicas"));
         assertTrue(rec.recommendedConfiguration().contains("KEDA ScaledObject"));
+        assertTrue(rec.recommendedConfiguration().contains(" UTC"));
+        assertTrue(rec.peakSchedule().endsWith(" UTC"));
     }
 
     @Test
