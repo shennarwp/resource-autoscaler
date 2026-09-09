@@ -82,6 +82,32 @@ class MockMetricsRepositoryTest {
     }
 
     @Test
+    void replayWindowAnchorsToSnapshotEndNotWallClock() throws Exception {
+        Instant base = Instant.parse("2026-09-08T05:00:00Z");
+        SnapshotStore store = new SnapshotStore(tempDir.toString());
+        store.write(new MetricsSnapshot(
+            "nginx-busy", "K8S_CLUSTER", "Nginx Busy (K3s)",
+            "2026-09-08T09:00:00Z", "2026-09-08T05:00:00Z", "2026-09-08T08:00:00Z",
+            3600, null, List.of(
+                new MetricsSnapshot.Point("2026-09-08T05:00:00Z", 10.0, 5.0, 0),
+                new MetricsSnapshot.Point("2026-09-08T06:00:00Z", 20.0, 6.0, 0),
+                new MetricsSnapshot.Point("2026-09-08T07:00:00Z", 30.0, 7.0, 0),
+                new MetricsSnapshot.Point("2026-09-08T08:00:00Z", 40.0, 8.0, 0)
+            )
+        ));
+
+        MockMetricsRepository repo = new MockMetricsRepository(store, "nginx-busy");
+        repo.loadKubeSnapshot();
+
+        List<MetricPoint> served = repo.getAllMetrics("nginx-busy", Duration.ofHours(3));
+
+        assertEquals(4, served.size());
+        assertEquals(base, served.getFirst().timestamp());
+        assertEquals(Instant.parse("2026-09-08T08:00:00Z"), served.getLast().timestamp());
+        assertTrue(served.stream().allMatch(p -> !p.timestamp().isBefore(base)));
+    }
+
+    @Test
     void mockExposesOnlyTheKubernetesCluster() {
         MetricsRepository repo = new MockMetricsRepository(new SnapshotStore(tempDir.toString()), "nginx-busy");
         assertEquals(List.of("nginx-busy"), repo.getMonitoredResourceIds());
