@@ -21,7 +21,7 @@ class InsightsMetricsRepositoryTest {
         assertTrue(query.contains("where Name startswith 'nginx-busy-'"));
         assertTrue(query.contains("CounterName in ('cpuRequestNanoCores','cpuLimitNanoCores','memoryRequestBytes','memoryLimitBytes')"));
         assertTrue(query.contains("cpuReq = sum(case(CounterName=='cpuRequestNanoCores'"));
-        assertFalse(query.contains("cpuCapacityNanoCores"));
+        assertTrue(query.contains("cpuCapacityNanoCores"));
     }
 
     /** Verifies export query binds explicit exact window with sixty-second step. */
