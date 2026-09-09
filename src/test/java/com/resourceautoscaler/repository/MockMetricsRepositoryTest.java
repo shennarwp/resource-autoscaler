@@ -138,7 +138,7 @@ class MockMetricsRepositoryTest {
     }
 
     @Test
-    void weekendTilesRenderIdleWhereasWeekdaysKeepLoad() {
+    void weekendTilesRenderBaselineUsageInsteadOfZeroCpu() {
         MetricsSnapshot snap = daySnapshot();
         Instant end = Instant.parse("2026-09-08T17:59:00Z");
         Instant start = end.minus(Duration.ofDays(4)); // Fri..Tue, spans Sat/Sun
@@ -146,10 +146,31 @@ class MockMetricsRepositoryTest {
         List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
 
         assertTrue(points.stream().anyMatch(p -> isWeekend(p.timestamp())));
+        assertTrue(points.stream().allMatch(p -> p.cpuUtilization() > 0.0));
         assertTrue(points.stream().filter(p -> isWeekend(p.timestamp()))
-                .allMatch(p -> p.cpuUtilization() == 0.0));
+                .allMatch(p -> p.cpuUtilization() >= 7.0 && p.cpuUtilization() <= 15.0));
         assertTrue(points.stream().filter(p -> !isWeekend(p.timestamp()))
                 .anyMatch(p -> p.cpuUtilization() > 0.0));
+    }
+
+    @Test
+    void lowCpuSamplesGetRandomizedBaselineUsage() {
+        MetricsSnapshot snap = new MetricsSnapshot(
+            "nginx-busy", "K8S_CLUSTER", "Nginx Busy (K3s)",
+            "2026-09-08T09:00:00Z", "2026-09-08T05:00:00Z", "2026-09-08T07:00:00Z",
+            3600, null, List.of(
+                new MetricsSnapshot.Point("2026-09-08T05:00:00Z", 0.0, 5.0, 0),
+                new MetricsSnapshot.Point("2026-09-08T06:00:00Z", 3.0, 5.0, 0),
+                new MetricsSnapshot.Point("2026-09-08T07:00:00Z", 5.5, 5.0, 0)
+            )
+        );
+        Instant start = Instant.parse("2026-09-08T04:30:00Z");
+        Instant end = Instant.parse("2026-09-08T07:30:00Z");
+
+        List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
+
+        assertTrue(!points.isEmpty());
+        assertTrue(points.stream().allMatch(p -> p.cpuUtilization() >= 7.0 && p.cpuUtilization() <= 15.0));
     }
 
     @Test
@@ -160,6 +181,7 @@ class MockMetricsRepositoryTest {
         assertEquals(LocalTime.of(16, 0), cfg.peakEnd());
         assertEquals(List.of(1, 2, 3, 4, 5), cfg.peakDaysOfWeek());
         assertEquals(50.0, cfg.peakTargetUtilization(), 0.001);
+        assertEquals(18.0, cfg.offPeakTargetUtilization(), 0.001);
     }
 
     private static boolean isWeekend(Instant ts) {
