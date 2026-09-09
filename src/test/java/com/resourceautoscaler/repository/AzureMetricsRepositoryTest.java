@@ -32,8 +32,8 @@ class AzureMetricsRepositoryTest {
             AzureMetricsRepository.mergeByTimestamp("autoscaler-busy", "APP_SERVICE", cpu, mem, req);
 
         assertEquals(2, merged.size());
-        assertEquals(t0, merged.get(0).timestamp());
-        assertEquals(80, merged.get(0).cpuUtilization(), 0.001);
+        assertEquals(t0, merged.getFirst().timestamp());
+        assertEquals(80, merged.getFirst().cpuUtilization(), 0.001);
         assertEquals(0, merged.get(0).memoryUtilization(), 0.001);
         assertEquals(100, merged.get(0).activeRequestCount());
         assertEquals(t2, merged.get(1).timestamp());

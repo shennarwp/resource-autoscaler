@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -94,7 +93,7 @@ public class AnalysisService {
     private double offPeakHoursFraction(PeakHoursConfig config) {
         int peakDays = config.peakDaysOfWeek().size();
         double peakFraction = (peakDays * peakHoursPerDay(config)) / (7.0 * 24.0);
-        return Math.max(0.0, Math.min(1.0, 1.0 - peakFraction));
+        return Math.clamp(1.0 - peakFraction, 0.0, 1.0);
     }
 
     /** Scores sample coverage and separation without claiming certainty above 0.95. */
@@ -224,7 +223,7 @@ public class AnalysisService {
             double savingsPercent
     ) {
         double roundedSavings = Math.round(savingsPercent * 10.0) / 10.0;
-        double offPeakIdleFraction = Math.max(0.0, Math.min(1.0, offPeakHoursFraction(config))) * 100.0;
+        double offPeakIdleFraction = Math.clamp(offPeakHoursFraction(config), 0.0, 1.0) * 100.0;
 
         return String.format(
             "Observed utilization pattern: peak hours average %.1f%% CPU while off-peak hours average %.1f%% CPU. " +

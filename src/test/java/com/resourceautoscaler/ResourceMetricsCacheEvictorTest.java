@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 @SpringBootTest
-/** Tests the resource metrics cache evictor behavior and regression cases. */
+/* Tests the resource metrics cache evictor behavior and regression cases. */
 class ResourceMetricsCacheEvictorTest {
 
     @Autowired

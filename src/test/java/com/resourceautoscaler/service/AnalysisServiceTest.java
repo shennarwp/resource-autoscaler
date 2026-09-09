@@ -11,8 +11,7 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /** Tests the analysis service behavior and regression cases. */
 class AnalysisServiceTest {
@@ -39,11 +38,11 @@ class AnalysisServiceTest {
         );
         return new ResourceMetrics(
             "aks-primary-cluster", resourceType, "Primary AKS Cluster",
-            Instant.now(), List.<MetricPoint>of(), stats
+            Instant.now(), List.of(), stats
         );
     }
 
-    /** Verifies savings estimate is positive when off peak is below target. */
+    /** Verifies savings estimate is positive when off-peak is below target. */
     @Test
     void savingsEstimateIsPositiveWhenOffPeakIsBelowTarget() {
         List<ScalingRecommendation> recs =
@@ -56,7 +55,7 @@ class AnalysisServiceTest {
         assertTrue(rec.estimatedMonthlySavingsUsd() > 0);
     }
 
-    /** Verifies recommendation is skipped when off peak bucket has no samples. */
+    /** Verifies recommendation is skipped when off-peak bucket has no samples. */
     @Test
     void recommendationIsSkippedWhenOffPeakBucketHasNoSamples() {
         List<ScalingRecommendation> recs =
@@ -72,7 +71,7 @@ class AnalysisServiceTest {
         assertTrue(recs.isEmpty());
     }
 
-    /** Verifies savings uses weekly off peak fraction for seven day peak window. */
+    /** Verifies savings uses weekly off-peak fraction for seven day peak window. */
     @Test
     void savingsUsesWeeklyOffPeakFractionForSevenDayPeakWindow() {
         PeakHoursConfig sevenDayConfig = new PeakHoursConfig(
@@ -86,7 +85,7 @@ class AnalysisServiceTest {
         assertEquals(100.0 / 3.0 * 0.5, recs.getFirst().estimatedSavingsPercentage(), 0.01);
     }
 
-    /** Verifies weekend days increase off peak weighting for same utilization. */
+    /** Verifies weekend days increase off-peak weighting for same utilization. */
     @Test
     void weekendDaysIncreaseOffPeakWeightingForSameUtilization() {
         PeakHoursConfig sevenDayConfig = new PeakHoursConfig(
@@ -167,6 +166,6 @@ class AnalysisServiceTest {
         assertTrue(rationale.contains("Observed utilization pattern"));
         assertTrue(rationale.contains("07:00-18:00 UTC schedule"));
         assertTrue(rationale.contains("estimated savings are 33.6%"));
-        assertTrue(!rationale.contains("minimal risk"));
+        assertFalse(rationale.contains("minimal risk"));
     }
 }

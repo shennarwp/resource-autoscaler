@@ -57,7 +57,7 @@ class MetricsSnapshotServiceTest {
         assertEquals("Nginx Busy (K3s)", loaded.resourceName());
         assertEquals(60, loaded.stepSeconds());
         assertEquals(2, loaded.dataPoints().size());
-        assertEquals(61.5, loaded.dataPoints().get(0).cpuUtilization(), 0.001);
+        assertEquals(61.5, loaded.dataPoints().getFirst().cpuUtilization(), 0.001);
         assertEquals("2026-09-08T05:00:00Z", loaded.start());
         assertEquals("2026-09-08T09:00:00Z", loaded.end());
         assertNotNull(loaded.currentConfig());

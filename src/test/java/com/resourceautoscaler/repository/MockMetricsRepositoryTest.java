@@ -14,8 +14,7 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /** Tests the mock metrics repository behavior and regression cases. */
 class MockMetricsRepositoryTest {
@@ -77,7 +76,7 @@ class MockMetricsRepositoryTest {
         Instant end = base.plusSeconds(120);
         List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
 
-        assertTrue(!points.isEmpty());
+        assertFalse(points.isEmpty());
         long distinctHourBuckets = points.stream()
                 .map(p -> p.timestamp().getEpochSecond() / 3600)
                 .distinct().count();
@@ -176,7 +175,7 @@ class MockMetricsRepositoryTest {
 
         List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
 
-        assertTrue(!points.isEmpty());
+        assertFalse(points.isEmpty());
         assertTrue(points.stream().allMatch(p -> p.cpuUtilization() >= 7.0 && p.cpuUtilization() <= 15.0));
     }
 
@@ -223,7 +222,7 @@ class MockMetricsRepositoryTest {
         repo.loadKubeSnapshot();
 
         List<MetricPoint> points = repo.getAllMetrics("nginx-busy", Duration.ofMinutes(30));
-        assertTrue(!points.isEmpty());
+        assertFalse(points.isEmpty());
         assertTrue(points.stream().allMatch(p -> Math.abs(p.cpuUtilization() - 10.0) < 0.001
                 || Math.abs(p.cpuUtilization() - 30.0) < 0.001));
 

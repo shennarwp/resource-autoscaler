@@ -164,18 +164,13 @@ public class MockMetricsRepository implements MetricsRepository {
                 true
             );
         }
-        switch (resourceId) {
-            case "aks-primary-cluster":
-                return new CurrentConfig(resourceId, 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true);
-            case "vm-backend-01":
-                return new CurrentConfig(resourceId, 1, 1, 4.0, 4.0, 8.0, 16.0, 1, 4.0, true);
-            case "appservice-api-gateway":
-                return new CurrentConfig(resourceId, 1, 1, 0.75, 1.75, 1.0, 3.5, 0, 0, true);
-            case "function-data-processor":
-                return new CurrentConfig(resourceId, 1, 1, 0.25, 0.5, 0.5, 1.0, 0, 0, true);
-            default:
-                return CurrentConfig.unknown(resourceId);
-        }
+        return switch (resourceId) {
+            case "aks-primary-cluster" -> new CurrentConfig(resourceId, 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true);
+            case "vm-backend-01" -> new CurrentConfig(resourceId, 1, 1, 4.0, 4.0, 8.0, 16.0, 1, 4.0, true);
+            case "appservice-api-gateway" -> new CurrentConfig(resourceId, 1, 1, 0.75, 1.75, 1.0, 3.5, 0, 0, true);
+            case "function-data-processor" -> new CurrentConfig(resourceId, 1, 1, 0.25, 0.5, 0.5, 1.0, 0, 0, true);
+            default -> CurrentConfig.unknown(resourceId);
+        };
     }
 
     /** Returns replayed points when the requested resource has a loaded snapshot. */
@@ -200,7 +195,7 @@ public class MockMetricsRepository implements MetricsRepository {
         if (points == null || points.isEmpty()) {
             return now;
         }
-        Instant last = Instant.parse(points.get(points.size() - 1).timestamp());
+        Instant last = Instant.parse(points.getLast().timestamp());
         java.time.ZonedDateTime lastDay = last.atZone(java.time.ZoneOffset.UTC);
         java.time.LocalTime clock = now.atZone(java.time.ZoneOffset.UTC).toLocalTime()
                 .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
@@ -222,8 +217,8 @@ public class MockMetricsRepository implements MetricsRepository {
             return List.of();
         }
 
-        Instant first = Instant.parse(points.get(0).timestamp());
-        Instant last = Instant.parse(points.get(points.size() - 1).timestamp());
+        Instant first = Instant.parse(points.getFirst().timestamp());
+        Instant last = Instant.parse(points.getLast().timestamp());
         long step = stepSecondsForRange(Duration.between(start, end));
         long spanSeconds = Math.max(Duration.between(first, last).getSeconds()
                 + (snapshot.stepSeconds() != null && snapshot.stepSeconds() > 0 ? snapshot.stepSeconds() : 60), step);
@@ -299,7 +294,7 @@ public class MockMetricsRepository implements MetricsRepository {
             }
 
             double noise = (Math.random() - 0.5) * 4.0;
-            double value = Math.max(0, Math.min(100, base + noise));
+            double value = Math.clamp(base + noise, 0, 100);
 
             points.add(new MetricPoint(
                 t, value, value * 0.85, (int)(value * 3),

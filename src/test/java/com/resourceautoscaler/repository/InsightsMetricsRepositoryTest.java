@@ -24,7 +24,7 @@ class InsightsMetricsRepositoryTest {
         assertFalse(query.contains("cpuCapacityNanoCores"));
     }
 
-    /** Verifies export query binds explicit exact window with sixty second step. */
+    /** Verifies export query binds explicit exact window with sixty-second step. */
     @Test
     void configQuerySumsRawNodeCapacityWithoutAliasingArgMax() {
         String query = InsightsMetricsRepository.buildConfigQuery("nginx-busy", "24h", "default");
