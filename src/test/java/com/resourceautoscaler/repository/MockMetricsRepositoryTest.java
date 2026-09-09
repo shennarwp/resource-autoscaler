@@ -81,30 +81,58 @@ class MockMetricsRepositoryTest {
         assertTrue(points.size() >= windowSeconds / 3600);
     }
 
-    @Test
-    void replayWindowAnchorsToSnapshotEndNotWallClock() throws Exception {
-        Instant base = Instant.parse("2026-09-08T05:00:00Z");
-        SnapshotStore store = new SnapshotStore(tempDir.toString());
-        store.write(new MetricsSnapshot(
+    private static List<MetricsSnapshot.Point> dayPoints() {
+        return List.of(
+            new MetricsSnapshot.Point("2026-09-08T00:00:00Z", 10.0, 5.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T05:00:00Z", 20.0, 6.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T06:00:00Z", 30.0, 7.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T07:00:00Z", 40.0, 8.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T08:00:00Z", 50.0, 9.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T10:00:00Z", 60.0, 10.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T12:00:00Z", 70.0, 11.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T14:00:00Z", 80.0, 12.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T16:00:00Z", 90.0, 13.0, 0),
+            new MetricsSnapshot.Point("2026-09-08T17:59:00Z", 95.0, 14.0, 0)
+        );
+    }
+
+    private static MetricsSnapshot daySnapshot() {
+        return new MetricsSnapshot(
             "nginx-busy", "K8S_CLUSTER", "Nginx Busy (K3s)",
-            "2026-09-08T09:00:00Z", "2026-09-08T05:00:00Z", "2026-09-08T08:00:00Z",
-            3600, null, List.of(
-                new MetricsSnapshot.Point("2026-09-08T05:00:00Z", 10.0, 5.0, 0),
-                new MetricsSnapshot.Point("2026-09-08T06:00:00Z", 20.0, 6.0, 0),
-                new MetricsSnapshot.Point("2026-09-08T07:00:00Z", 30.0, 7.0, 0),
-                new MetricsSnapshot.Point("2026-09-08T08:00:00Z", 40.0, 8.0, 0)
-            )
-        ));
+            "2026-09-08T17:59:00Z", "2026-09-08T00:00:00Z", "2026-09-08T17:59:00Z",
+            3600, null, dayPoints());
+    }
+
+    @Test
+    void alignedWindowEndMapsWallClockOntoSnapshotDay() {
+        MetricsSnapshot snap = daySnapshot();
+
+        assertEquals(Instant.parse("2026-09-08T10:40:00Z"),
+            MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-09T10:40:37Z")));
+        assertEquals(Instant.parse("2026-09-08T17:59:00Z"),
+            MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-09T19:00:00Z")));
+        assertEquals(Instant.parse("2026-09-08T06:30:00Z"),
+            MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-08T06:30:00Z")));
+    }
+
+    @Test
+    void replayWindowTracksNowClockOnTheSnapshotDay() throws Exception {
+        SnapshotStore store = new SnapshotStore(tempDir.toString());
+        store.write(daySnapshot());
 
         MockMetricsRepository repo = new MockMetricsRepository(store, "nginx-busy");
         repo.loadKubeSnapshot();
 
-        List<MetricPoint> served = repo.getAllMetrics("nginx-busy", Duration.ofHours(3));
+        Instant expectedEnd = MockMetricsRepository.alignedWindowEnd(daySnapshot(), Instant.now());
+        List<Instant> expected = daySnapshot().dataPoints().stream()
+                .map(p -> Instant.parse(p.timestamp()))
+                .filter(ts -> !ts.isBefore(expectedEnd.minus(Duration.ofHours(3)))
+                        && !ts.isAfter(expectedEnd))
+                .sorted()
+                .toList();
 
-        assertEquals(4, served.size());
-        assertEquals(base, served.getFirst().timestamp());
-        assertEquals(Instant.parse("2026-09-08T08:00:00Z"), served.getLast().timestamp());
-        assertTrue(served.stream().allMatch(p -> !p.timestamp().isBefore(base)));
+        List<MetricPoint> served = repo.getAllMetrics("nginx-busy", Duration.ofHours(3));
+        assertEquals(expected, served.stream().map(MetricPoint::timestamp).toList());
     }
 
     @Test
