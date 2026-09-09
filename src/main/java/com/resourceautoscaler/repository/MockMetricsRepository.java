@@ -249,7 +249,7 @@ public class MockMetricsRepository implements MetricsRepository {
                 int weekday = ts.atZone(java.time.ZoneOffset.UTC).getDayOfWeek().getValue();
                 boolean weekend = weekday == 6 || weekday == 7;
                 double cpu = weekend ? 0.0 : p.cpuUtilization();
-                if (cpu < 7.0) {
+                if (!weekend && cpu < 7.0) {
                     cpu = ThreadLocalRandom.current().nextDouble(7.0, 15.0);
                 }
                 result.add(new MetricPoint(

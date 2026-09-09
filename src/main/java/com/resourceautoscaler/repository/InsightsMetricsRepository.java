@@ -114,46 +114,46 @@ public class InsightsMetricsRepository implements MetricsRepository {
         return PeakHoursConfig.defaults();
     }
 
-    /** Discovers replica, pod resource, and node capacity values from Log Analytics. */
+    /** Discovers replica and pod resource values from Log Analytics. */
     @Override
     public CurrentConfig getCurrentConfig(String resourceId) {
+        validateResourceId(resourceId);
         String range = timespan(CONFIG_LOOKBACK);
         String query = buildConfigQuery(resourceId, range, POD_NAMESPACE);
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         QueryTimeInterval interval = new QueryTimeInterval(now.minus(CONFIG_LOOKBACK), now);
 
-        try {
-            LogsQueryResult result = logsClient.queryWorkspace(workspaceId, query, interval);
-            if (result == null
-                    || result.getQueryResultStatus() == LogsQueryResultStatus.FAILURE
-                    || result.getTable() == null
-                    || result.getTable().getRows().isEmpty()) {
-                log.warn("Container Insights config query for {} found no deployment row", resourceId);
-                return CurrentConfig.unknown(resourceId);
-            }
-
-            LogsTableRow row = result.getTable().getRows().getFirst();
-            return currentConfigFromValues(
-                resourceId,
-                column(row, "spec"),
-                column(row, "avail"),
-                column(row, "cpuReq"),
-                column(row, "cpuLim"),
-                column(row, "memReq"),
-                column(row, "memLim"),
-                column(row, "nodeCount"),
-                column(row, "cpuCores")
-            );
-        } catch (RuntimeException e) {
-            log.error("Container Insights config query failed for resource {}", resourceId, e);
+        LogsQueryResult result = logsClient.queryWorkspace(workspaceId, query, interval);
+        if (result == null
+                || result.getQueryResultStatus() == LogsQueryResultStatus.FAILURE
+                || result.getTable() == null
+                || result.getTable().getRows().isEmpty()) {
+            log.warn("Container Insights config query for {} found no deployment row", resourceId);
             return CurrentConfig.unknown(resourceId);
         }
+
+        LogsTableRow row = result.getTable().getRows().getFirst();
+        return currentConfigFromValues(
+            resourceId,
+            column(row, "spec"),
+            column(row, "avail"),
+            column(row, "cpuReq"),
+            column(row, "cpuLim"),
+            column(row, "memReq"),
+            column(row, "memLim"),
+            column(row, "nodeCount"),
+            column(row, "cpuCores")
+        );
     }
 
     /** Downloads one-minute samples for an exact UTC interval for snapshot export. */
     @Override
     public Optional<List<MetricPoint>> downloadRawMetrics(String resourceId, Instant start, Instant end) {
+        validateResourceId(resourceId);
+        if (start == null || end == null || !start.isBefore(end)) {
+            throw new IllegalArgumentException("Snapshot start must be before end");
+        }
         OffsetDateTime from = start.atOffset(ZoneOffset.UTC);
         OffsetDateTime to = end.atOffset(ZoneOffset.UTC);
         String query = buildExportQuery(resourceId, start.toString(), end.toString(), 60L, POD_NAMESPACE);
@@ -163,9 +163,9 @@ public class InsightsMetricsRepository implements MetricsRepository {
     /**
      * Discovers the deployment's current configuration from Container Insights:
      * desired/available replicas (KubeDeployment metric), per-container resource
-     * requests and limits (K8SContainer counters) and total cluster CPU capacity
-     * (K8SNode counters). Returns a single row; a {@code leftouter} join keeps it
-     * even where the container/node series are missing for a fresh deployment.
+     * requests and limits (K8SContainer counters). Node capacity is intentionally
+     * excluded because it is cluster-wide and cannot be attributed safely to one
+     * deployment.
      */
     static String buildConfigQuery(String resourceId, String range, String namespace) {
         return """
@@ -190,11 +190,12 @@ public class InsightsMetricsRepository implements MetricsRepository {
             | where CounterName in ('cpuRequestNanoCores','cpuLimitNanoCores','memoryRequestBytes','memoryLimitBytes')
             | extend PodUid = tostring(split(InstanceName,'/')[-2])
             | join kind=inner (pods) on PodUid
+            | summarize arg_max(TimeGenerated, CounterValue) by PodUid, CounterName
             | summarize
-                cpuReq = max(case(CounterName=='cpuRequestNanoCores', CounterValue, 0.0)),
-                cpuLim = max(case(CounterName=='cpuLimitNanoCores', CounterValue, 0.0)),
-                memReq = max(case(CounterName=='memoryRequestBytes', CounterValue, 0.0)),
-                memLim = max(case(CounterName=='memoryLimitBytes', CounterValue, 0.0))
+                cpuReq = sum(case(CounterName=='cpuRequestNanoCores', CounterValue, 0.0)),
+                cpuLim = sum(case(CounterName=='cpuLimitNanoCores', CounterValue, 0.0)),
+                memReq = sum(case(CounterName=='memoryRequestBytes', CounterValue, 0.0)),
+                memLim = sum(case(CounterName=='memoryLimitBytes', CounterValue, 0.0))
               by _key = 1;
             let nodes = Perf
             | where TimeGenerated > start
@@ -204,8 +205,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
             | summarize nodeCount = count(), cpuCores = sum(CounterValue) by _key = 1;
             deployments
             | join kind=leftouter (containers) on _key
-            | join kind=leftouter (nodes) on _key
-            | project spec, avail, cpuReq, cpuLim, memReq, memLim, nodeCount, cpuCores
+            | project spec, avail, cpuReq, cpuLim, memReq, memLim
             """.formatted(range, namespace, resourceId, namespace, resourceId);
     }
 
@@ -215,6 +215,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
      * are exactly the requested range rather than "last N" before now.
      */
     static String buildExportQuery(String resourceId, String startIso, String endIso, long stepSeconds, String namespace) {
+        validateResourceId(resourceId);
         return """
             let pod = KubePodInventory
             | where TimeGenerated between (datetime(%s) .. datetime(%s))
@@ -298,7 +299,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
                     || result.getTable() == null) {
                 log.warn("Container Insights query failed: {}",
                         result != null ? result.getError() : "no result");
-                return List.of();
+                throw new IllegalStateException("Container Insights query failed");
             }
 
             List<Row> rows = new ArrayList<>();
@@ -318,7 +319,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
             return rows;
         } catch (RuntimeException e) {
             log.error("Container Insights query failed for resource {}", query, e);
-            return List.of();
+            throw e;
         }
     }
 
@@ -335,6 +336,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
     /** Builds the rolling Container Insights CPU and memory query. */
     private String buildQuery(String resourceId, String range, long step) {
+        validateResourceId(resourceId);
         return """
             let pod = KubePodInventory
             | where TimeGenerated > ago(%s)
@@ -380,5 +382,11 @@ public class InsightsMetricsRepository implements MetricsRepository {
     private String resourceType(String resourceId) {
         if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
         return "UNKNOWN";
+    }
+
+    private static void validateResourceId(String resourceId) {
+        if (resourceId == null || !resourceId.matches("[A-Za-z0-9][A-Za-z0-9._-]*")) {
+            throw new IllegalArgumentException("Invalid resource ID");
+        }
     }
 }

@@ -48,6 +48,9 @@ public class AzureMetricsRepository implements MetricsRepository {
     @Value("${app.azure.resource-group}")
     private String resourceGroup;
 
+    @Value("${app.azure.resources:autoscaler-busy,autoscaler-idle}")
+    private String monitoredResources;
+
     private MetricsQueryClient metricsClient;
 
     /** Creates the Azure Monitor client from the configured service principal. */
@@ -70,10 +73,14 @@ public class AzureMetricsRepository implements MetricsRepository {
         return queryMetric(resourceId, timeRange, "CpuTime");
     }
 
-    /** Loads memory samples and converts bytes to megabytes. */
+    /**
+     * Memory working-set metrics are absolute bytes, not utilization percentages.
+     * The repository has no App Service memory limit, so it does not expose them
+     * as percentage values.
+     */
     @Override
     public List<MetricPoint> getMemoryUtilization(String resourceId, Duration timeRange) {
-        return queryMetric(resourceId, timeRange, "MemoryWorkingSet", value -> toMb(value));
+        return List.of();
     }
 
     /** Loads Azure request totals for the requested window. */
@@ -91,7 +98,11 @@ public class AzureMetricsRepository implements MetricsRepository {
         return mergeByTimestamp(resourceId, getResourceType(resourceId), cpu, mem, req);
     }
 
-    /** Merges independently sampled streams, defaulting missing values to zero. */
+    /**
+     * Aligns the memory and request streams to CPU timestamps.
+     * Samples that exist only in a secondary stream are discarded so they cannot
+     * create artificial zero-CPU points.
+     */
     static List<MetricPoint> mergeByTimestamp(
             String resourceId, String resourceType,
             List<MetricPoint> cpu, List<MetricPoint> mem, List<MetricPoint> req
@@ -101,10 +112,16 @@ public class AzureMetricsRepository implements MetricsRepository {
             byTimestamp.computeIfAbsent(p.timestamp(), k -> new double[3])[0] = p.cpuUtilization();
         }
         for (MetricPoint p : mem) {
-            byTimestamp.computeIfAbsent(p.timestamp(), k -> new double[3])[1] = p.memoryUtilization();
+            double[] values = byTimestamp.get(p.timestamp());
+            if (values != null) {
+                values[1] = p.memoryUtilization();
+            }
         }
         for (MetricPoint p : req) {
-            byTimestamp.computeIfAbsent(p.timestamp(), k -> new double[3])[2] = p.activeRequestCount();
+            double[] values = byTimestamp.get(p.timestamp());
+            if (values != null) {
+                values[2] = p.activeRequestCount();
+            }
         }
 
         List<MetricPoint> merged = new ArrayList<>();
@@ -124,10 +141,11 @@ public class AzureMetricsRepository implements MetricsRepository {
     /** Returns the representative resources exposed by the Azure profile. */
     @Override
     public List<String> getMonitoredResourceIds() {
-        return List.of(
-            "autoscaler-busy",
-            "autoscaler-idle"
-        );
+        return java.util.Arrays.stream(monitoredResources.split(","))
+                .map(String::trim)
+                .filter(id -> !id.isEmpty())
+                .peek(AzureMetricsRepository::validateResourceId)
+                .toList();
     }
 
     /** Uses the common default schedule until resource-specific configuration exists. */
@@ -153,6 +171,10 @@ public class AzureMetricsRepository implements MetricsRepository {
             String resourceId, Duration timeRange, String metricName,
             DoubleUnaryOperator transform
     ) {
+        validateResourceId(resourceId);
+        if (timeRange == null || timeRange.isZero() || timeRange.isNegative()) {
+            throw new IllegalArgumentException("Metric time range must be positive");
+        }
         String resourceIdFull = buildResourceId(resourceId);
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
@@ -203,11 +225,6 @@ public class AzureMetricsRepository implements MetricsRepository {
         );
     }
 
-    /** Converts bytes to the megabyte unit used by the API model. */
-    private static double toMb(double bytes) {
-        return bytes / (1024 * 1024);
-    }
-
     /** Infers the API resource type from the repository's stable ID prefixes. */
     private String getResourceType(String resourceId) {
         if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
@@ -216,5 +233,11 @@ public class AzureMetricsRepository implements MetricsRepository {
         if (resourceId.startsWith("func")) return "AZURE_FUNCTION";
         if (resourceId.startsWith("autoscaler")) return "APP_SERVICE";
         return "UNKNOWN";
+    }
+
+    private static void validateResourceId(String resourceId) {
+        if (resourceId == null || !resourceId.matches("[A-Za-z0-9][A-Za-z0-9._-]*")) {
+            throw new IllegalArgumentException("Invalid resource ID");
+        }
     }
 }
