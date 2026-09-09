@@ -1,5 +1,7 @@
 package com.resourceautoscaler.controller;
 
+import com.resourceautoscaler.dto.RecommendationRequest;
+import com.resourceautoscaler.dto.RecommendationResponse;
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
@@ -82,6 +84,49 @@ class RecommendationsControllerTest {
         verify(analysisService).analyzeAndRecommend(org.mockito.ArgumentMatchers.eq(metrics),
             any(), costCaptor.capture(), any());
         assertEquals(525.6, costCaptor.getValue(), 0.001);
+    }
+
+    @Test
+    void appServiceCodeGenerationUsesAppServiceTemplate() {
+        MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
+        AnalysisService analysisService = mock(AnalysisService.class);
+        CodeGenerationService codeGenerationService = mock(CodeGenerationService.class);
+        CostEstimateService costEstimateService = mock(CostEstimateService.class);
+        RecommendationsController controller =
+            new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
+
+        ResourceMetrics metrics = sampleMetrics("appservice-api-gateway", "APP_SERVICE");
+        CurrentConfig currentConfig = CurrentConfig.unknown("appservice-api-gateway");
+        ScalingRecommendation recommendation = new ScalingRecommendation(
+            "appservice-api-gateway", "API Gateway",
+            ScalingRecommendation.ResourceType.AZURE_APP_SERVICE,
+            ScalingRecommendation.RecommendationType.SCHEDULE_BASED_SCALING,
+            "current", "recommended",
+            "07:00 - 18:00 UTC", "18:00 - 07:00 UTC",
+            LocalTime.of(7, 0), LocalTime.of(18, 0),
+            100.0, 20.0, 0.8,
+            Instant.now(), "rationale"
+        );
+        RecommendationRequest request = new RecommendationRequest(
+            "appservice-api-gateway", "APP_SERVICE",
+            null, null, null, 0.0
+        );
+
+        when(metricsService.collectMetrics("appservice-api-gateway", 30.0)).thenReturn(metrics);
+        when(metricsService.getCurrentConfig("appservice-api-gateway")).thenReturn(currentConfig);
+        when(metricsService.getPeakHoursConfig("appservice-api-gateway")).thenReturn(PeakHoursConfig.defaults());
+        when(costEstimateService.estimateMonthlyCost(any(CurrentConfig.class), org.mockito.ArgumentMatchers.eq("APP_SERVICE")))
+            .thenReturn(380.0);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble(), any()))
+            .thenReturn(List.of(recommendation));
+        when(codeGenerationService.generateAppServiceAutoscale(recommendation)).thenReturn("app-service-hcl");
+
+        RecommendationResponse response = controller.generateCode(request).getBody();
+
+        assertEquals("app-service-hcl", response.terraformHcl());
+        org.mockito.Mockito.verify(codeGenerationService).generateAppServiceAutoscale(recommendation);
+        org.mockito.Mockito.verify(codeGenerationService, org.mockito.Mockito.never())
+            .generateTerraformAutoscale(recommendation);
     }
 
     private ResourceMetrics sampleMetrics(String resourceId, String resourceType) {

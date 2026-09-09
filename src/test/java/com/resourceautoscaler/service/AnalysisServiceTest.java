@@ -145,4 +145,17 @@ class AnalysisServiceTest {
         assertEquals(1, recs.size());
         assertEquals(0.95, recs.getFirst().confidenceScore(), 0.001);
     }
+
+    @Test
+    void rationaleDescribesObservedPatternAndRoundedEstimate() {
+        List<ScalingRecommendation> recs =
+            service.analyzeAndRecommend(metricsWith(80, 5, 100, 100), config, 100.0, unknownConfig);
+
+        assertEquals(1, recs.size());
+        String rationale = recs.getFirst().rationale();
+        assertTrue(rationale.contains("Observed utilization pattern"));
+        assertTrue(rationale.contains("07:00-18:00 UTC schedule"));
+        assertTrue(rationale.contains("estimated savings are 33.6%"));
+        assertTrue(!rationale.contains("minimal risk"));
+    }
 }

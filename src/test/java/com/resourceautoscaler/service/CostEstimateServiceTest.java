@@ -28,6 +28,14 @@ class CostEstimateServiceTest {
     }
 
     @Test
+    void kubernetesClusterCostIncludesAllDiscoveredNodes() {
+        CurrentConfig cluster = new CurrentConfig(
+            "aks-primary-cluster", 3, 3, 1.0, 2.0, 2.0, 4.0, 2, 8.0, true);
+
+        assertEquals(640.0, service.estimateMonthlyCost(cluster, "AKS_CLUSTER"), 0.001);
+    }
+
+    @Test
     void kubernetesClusterWithoutDiscoveredNodesFallsBackToFlatEstimate() {
         assertEquals(2400.00,
             service.estimateMonthlyCost(CurrentConfig.unknown("nginx-busy"), "K8S_CLUSTER"), 0.001);

@@ -76,4 +76,45 @@ class CostOptimizationServiceTest {
             configCaptor.capture(), org.mockito.ArgumentMatchers.eq(2400.0), any());
         assertEquals(functionConfig, configCaptor.getValue());
     }
+
+    @Test
+    void negativeRecommendationSavingsCannotCreateNegativeCost() {
+        MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
+        AnalysisService analysisService = mock(AnalysisService.class);
+        CostEstimateService costEstimateService = mock(CostEstimateService.class);
+        CostOptimizationService service =
+            new CostOptimizationService(metricsService, analysisService, costEstimateService);
+
+        ResourceMetrics metrics = new ResourceMetrics(
+            "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
+            Instant.now(), List.<MetricPoint>of(),
+            new ResourceMetrics.AggregatedStats(30, 60, 5, 55, 70, 100, 40, 5, 100, 100)
+        );
+        ScalingRecommendation rec = new ScalingRecommendation(
+            "aks-primary-cluster", "Primary AKS Cluster",
+            ScalingRecommendation.ResourceType.AKS_DEPLOYMENT,
+            ScalingRecommendation.RecommendationType.KEDA_SCALED_OBJECT,
+            "3 replicas", "1 replica",
+            "07:00 - 18:00", "18:00 - 07:00",
+            LocalTime.of(7, 0), LocalTime.of(18, 0),
+            -100.0, -10.0, 0.5,
+            Instant.now(), "negative savings"
+        );
+
+        when(metricsService.getMonitoredResources()).thenReturn(List.of("aks-primary-cluster"));
+        when(metricsService.collectMetrics("aks-primary-cluster", 30.0)).thenReturn(metrics);
+        when(metricsService.getPeakHoursConfig("aks-primary-cluster")).thenReturn(functionConfig);
+        when(metricsService.getCurrentConfig("aks-primary-cluster"))
+            .thenReturn(CurrentConfig.unknown("aks-primary-cluster"));
+        when(costEstimateService.estimateMonthlyCost(any(CurrentConfig.class), org.mockito.ArgumentMatchers.eq("AKS_CLUSTER")))
+            .thenReturn(2400.0);
+        when(analysisService.analyzeAndRecommend(any(), any(), anyDouble(), any())).thenReturn(List.of(rec));
+
+        CostAnalysis analysis = service.generateCostAnalysis();
+
+        CostAnalysis.ResourceCostBreakdown breakdown = analysis.resources().getFirst();
+        assertEquals(2400.0, breakdown.optimizedMonthlyCostUsd(), 0.001);
+        assertEquals(0.0, breakdown.potentialSavingsUsd(), 0.001);
+        assertEquals(0.0, breakdown.savingsPercentage(), 0.001);
+    }
 }
