@@ -20,7 +20,7 @@
     ":dependencyDashboard",
     "group:recommended"
   ],
-  "baseBranchPatterns": ["main"],
+  "baseBranchPatterns": ["master"],
   "enabledManagers": ["maven", "npm", "dockerfile", "docker-compose", "github-actions"],
   "rebaseWhen": "conflicted",
   "addLabels": ["dependencies", "renovate"],
@@ -104,7 +104,6 @@
     {
       "description": "Separate multiple major Github Actions updates",
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
       "separateMultipleMajor": true
     },
     {
