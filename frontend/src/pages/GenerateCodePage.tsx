@@ -93,7 +93,7 @@ export default function GenerateCodePage() {
               </pre>
               <button
                 className="btn btn-copy"
-                onClick={() => navigator.clipboard.writeText(activeCode)}
+                onClick={() => navigator.clipboard.writeText(activeCode as string)}
               >
                 Copy to Clipboard
               </button>
