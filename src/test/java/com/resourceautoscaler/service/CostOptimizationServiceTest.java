@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Tests the cost optimization service behavior and regression cases. */
 class CostOptimizationServiceTest {
 
     private final PeakHoursConfig functionConfig = new PeakHoursConfig(
@@ -28,6 +29,7 @@ class CostOptimizationServiceTest {
         List.of(1, 2, 3, 4, 5, 6, 0), 55.0, 8.0, 10
     );
 
+    /** Verifies positive savings are subtracted and resource config is used. */
     @Test
     void positiveSavingsAreSubtractedAndResourceConfigIsUsed() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
@@ -77,6 +79,7 @@ class CostOptimizationServiceTest {
         assertEquals(functionConfig, configCaptor.getValue());
     }
 
+    /** Verifies negative recommendation savings cannot create negative cost. */
     @Test
     void negativeRecommendationSavingsCannotCreateNegativeCost() {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);

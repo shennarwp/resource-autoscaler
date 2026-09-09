@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { metricsApi, costApi, recommendationsApi } from '../services/api';
 import type { MetricsResponse, CostAnalysis, ScalingRecommendation, PeakHoursConfig } from '../types/api';
 
+/**
+ * Fetches metrics when the resource or time window changes.
+ * Existing data is retained while a new window is loading.
+ */
 export function useMetrics(resourceId: string | null, days = 30) {
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,7 @@ export function useMetrics(resourceId: string | null, days = 30) {
   return { metrics, loading: loading && !metrics, refreshing: loading && !!metrics, error };
 }
 
+/** Fetches a resource's peak schedule while ignoring stale unmount responses. */
 export function usePeakHoursConfig(resourceId: string | null): PeakHoursConfig | null {
   const [config, setConfig] = useState<PeakHoursConfig | null>(null);
 
@@ -40,6 +45,7 @@ export function usePeakHoursConfig(resourceId: string | null): PeakHoursConfig |
   return config;
 }
 
+/** Loads the dashboard-wide cost analysis once when the hook mounts. */
 export function useCostAnalysis() {
   const [analysis, setAnalysis] = useState<CostAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,6 +63,7 @@ export function useCostAnalysis() {
   return { analysis, loading: loading && !analysis, refreshing: loading && !!analysis, error };
 }
 
+/** Fetches recommendations and distinguishes initial loading from refreshes. */
 export function useRecommendations(resourceId: string | null, days = 30) {
   const [recommendations, setRecommendations] = useState<ScalingRecommendation[]>([]);
   const [loading, setLoading] = useState(false);

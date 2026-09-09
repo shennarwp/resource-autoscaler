@@ -12,6 +12,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Combines collection, analysis, and pricing into a cost comparison. */
 @Service
 public class CostOptimizationService {
 
@@ -19,6 +20,7 @@ public class CostOptimizationService {
     private final AnalysisService analysisService;
     private final CostEstimateService costEstimateService;
 
+    /** Wires the services used to calculate resource-level savings. */
     public CostOptimizationService(
             MetricsCollectionService metricsService,
             AnalysisService analysisService,
@@ -29,6 +31,7 @@ public class CostOptimizationService {
         this.costEstimateService = costEstimateService;
     }
 
+    /** Analyzes every monitored resource over 30 days and totals projected savings. */
     public CostAnalysis generateCostAnalysis() {
         List<String> resources = metricsService.getMonitoredResources();
         List<CostAnalysis.ResourceCostBreakdown> breakdowns = new ArrayList<>();

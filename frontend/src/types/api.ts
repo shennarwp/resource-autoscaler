@@ -1,3 +1,4 @@
+/** A timestamped utilization sample returned by the metrics API. */
 export interface MetricPoint {
   timestamp: string;
   cpuUtilization: number;
@@ -7,6 +8,7 @@ export interface MetricPoint {
   resourceType: string;
 }
 
+/** Aggregate CPU and memory values used by summary cards and recommendations. */
 export interface AggregatedStats {
   avgCpuUtilization: number;
   maxCpuUtilization: number;
@@ -15,6 +17,7 @@ export interface AggregatedStats {
   offPeakHourUtilization: number;
 }
 
+/** Resource metrics response, including samples and precomputed aggregates. */
 export interface MetricsResponse {
   resourceId: string;
   resourceType: string;
@@ -23,6 +26,7 @@ export interface MetricsResponse {
   stats: AggregatedStats;
 }
 
+/** UTC schedule and utilization thresholds used to classify peak samples. */
 export interface PeakHoursConfig {
   peakStart: string;
   peakEnd: string;
@@ -32,6 +36,7 @@ export interface PeakHoursConfig {
   scalingCooldownMinutes: number;
 }
 
+/** A proposed scaling change and its estimated financial impact. */
 export interface ScalingRecommendation {
   resourceId: string;
   resourceName: string;
@@ -50,12 +55,14 @@ export interface ScalingRecommendation {
   rationale: string;
 }
 
+/** Generated deployment code accompanying a scaling recommendation. */
 export interface RecommendationResponse {
   recommendation: ScalingRecommendation;
   kedaYaml?: string;
   terraformHcl?: string;
 }
 
+/** Cost analysis for the current reporting period. */
 export interface CostAnalysis {
   analysisPeriod: string;
   generatedAt: string;
@@ -63,6 +70,7 @@ export interface CostAnalysis {
   summary: CostSummary;
 }
 
+/** Current and optimized cost figures for one monitored resource. */
 export interface ResourceCostBreakdown {
   resourceId: string;
   resourceName: string;
@@ -76,6 +84,7 @@ export interface ResourceCostBreakdown {
   appliedOptimizations: string[];
 }
 
+/** Totals used by the dashboard's cost summary cards. */
 export interface CostSummary {
   totalCurrentCostUsd: number;
   totalOptimizedCostUsd: number;
@@ -86,12 +95,14 @@ export interface CostSummary {
   estimatedAnnualSavingsUsd: string;
 }
 
+/** Resource categories understood by the recommendation generator. */
 export type ResourceType =
   | 'AZURE_VM'
   | 'AKS_DEPLOYMENT'
   | 'AZURE_APP_SERVICE'
   | 'AZURE_FUNCTION';
 
+/** Strategies that can be rendered as scaling configuration. */
 export type RecommendationType =
   | 'SCHEDULE_BASED_SCALING'
   | 'RIGHTSIZING'

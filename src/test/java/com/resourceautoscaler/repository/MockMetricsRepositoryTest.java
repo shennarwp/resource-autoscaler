@@ -17,6 +17,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Tests the mock metrics repository behavior and regression cases. */
 class MockMetricsRepositoryTest {
 
     @TempDir
@@ -34,6 +35,7 @@ class MockMetricsRepositoryTest {
             60, null, points);
     }
 
+    /** Verifies range within snapshot returns only overlapping samples. */
     @Test
     void rangeWithinSnapshotReturnsOnlyOverlappingSamples() {
         Instant base = Instant.parse("2026-09-08T05:00:00Z");
@@ -47,6 +49,7 @@ class MockMetricsRepositoryTest {
         assertEquals("K8S_CLUSTER", points.get(0).resourceType());
     }
 
+    /** Verifies range longer than snapshot is tiled by snapshot span. */
     @Test
     void rangeLongerThanSnapshotIsTiledBySnapshotSpan() {
         Instant base = Instant.parse("2026-09-08T05:00:00Z");
@@ -64,6 +67,7 @@ class MockMetricsRepositoryTest {
         assertEquals(base, points.get(points.size() - 3).timestamp());
     }
 
+    /** Verifies long ranges are downsampled to hourly cadence. */
     @Test
     void longRangesAreDownsampledToHourlyCadence() {
         Instant base = Instant.parse("2026-09-08T05:00:00Z");
@@ -105,6 +109,7 @@ class MockMetricsRepositoryTest {
             3600, null, dayPoints());
     }
 
+    /** Verifies aligned window end maps wall clock onto snapshot day. */
     @Test
     void alignedWindowEndMapsWallClockOntoSnapshotDay() {
         MetricsSnapshot snap = daySnapshot();
@@ -117,6 +122,7 @@ class MockMetricsRepositoryTest {
             MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-08T06:30:00Z")));
     }
 
+    /** Verifies replay window tracks now clock on the snapshot day. */
     @Test
     void replayWindowTracksNowClockOnTheSnapshotDay() throws Exception {
         SnapshotStore store = new SnapshotStore(tempDir.toString());
@@ -137,6 +143,7 @@ class MockMetricsRepositoryTest {
         assertEquals(expected, served.stream().map(MetricPoint::timestamp).toList());
     }
 
+    /** Verifies weekend tiles render baseline usage instead of zero cpu. */
     @Test
     void weekendTilesRenderBaselineUsageInsteadOfZeroCpu() {
         MetricsSnapshot snap = daySnapshot();
@@ -153,6 +160,7 @@ class MockMetricsRepositoryTest {
                 .anyMatch(p -> p.cpuUtilization() > 0.0));
     }
 
+    /** Verifies low cpu samples get randomized baseline usage. */
     @Test
     void lowCpuSamplesGetRandomizedBaselineUsage() {
         MetricsSnapshot snap = new MetricsSnapshot(
@@ -173,6 +181,7 @@ class MockMetricsRepositoryTest {
         assertTrue(points.stream().allMatch(p -> p.cpuUtilization() >= 7.0 && p.cpuUtilization() <= 15.0));
     }
 
+    /** Verifies peak config for nginx busy matches deployed schedule. */
     @Test
     void peakConfigForNginxBusyMatchesDeployedSchedule() {
         MockMetricsRepository repo = new MockMetricsRepository(new SnapshotStore(tempDir.toString()), "nginx-busy");
@@ -189,12 +198,14 @@ class MockMetricsRepositoryTest {
         return dow == 6 || dow == 7;
     }
 
+    /** Verifies mock exposes only the kubernetes cluster. */
     @Test
     void mockExposesOnlyTheKubernetesCluster() {
         MetricsRepository repo = new MockMetricsRepository(new SnapshotStore(tempDir.toString()), "nginx-busy");
         assertEquals(List.of("nginx-busy"), repo.getMonitoredResourceIds());
     }
 
+    /** Verifies mock replays downloaded snapshot and its current config. */
     @Test
     void mockReplaysDownloadedSnapshotAndItsCurrentConfig() throws Exception {
         Instant base = Instant.now().minusSeconds(90);

@@ -28,11 +28,13 @@ public class MetricsSnapshotService {
     private final MetricsRepository metricsRepository;
     private final SnapshotStore snapshotStore;
 
+    /** Coordinates raw metric export with local snapshot persistence. */
     public MetricsSnapshotService(MetricsRepository metricsRepository, SnapshotStore snapshotStore) {
         this.metricsRepository = metricsRepository;
         this.snapshotStore = snapshotStore;
     }
 
+    /** Downloads raw samples and writes a replayable JSON snapshot for the exact window. */
     public SnapshotDownload export(String resourceId, Instant start, Instant end) {
         List<MetricPoint> points = metricsRepository.downloadRawMetrics(resourceId, start, end)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -71,8 +73,10 @@ public class MetricsSnapshotService {
         }
     }
 
+    /** Result returned after a snapshot file has been persisted. */
     public record SnapshotDownload(String file, int pointCount, String downloadedAt) {}
 
+    /** Supplies the display name embedded in exported snapshots. */
     private String resourceName(String resourceId) {
         return switch (resourceId) {
             case "nginx-busy" -> "Nginx Busy (K3s)";

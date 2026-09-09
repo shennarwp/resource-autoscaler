@@ -13,11 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Tests the snapshot store behavior and regression cases. */
 class SnapshotStoreTest {
 
     @TempDir
     Path tempDir;
 
+    /** Verifies writes and reads snapshot round trip. */
     @Test
     void writesAndReadsSnapshotRoundTrip() throws Exception {
         SnapshotStore store = new SnapshotStore(tempDir.toString());
@@ -40,6 +42,7 @@ class SnapshotStoreTest {
         assertEquals(snapshot, store.read("nginx-busy"));
     }
 
+    /** Verifies read missing file returns null. */
     @Test
     void readMissingFileReturnsNull() {
         SnapshotStore store = new SnapshotStore(tempDir.toString());

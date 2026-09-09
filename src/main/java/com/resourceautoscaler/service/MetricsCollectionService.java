@@ -12,15 +12,18 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+/** Collects repository samples, computes UTC peak aggregates, and caches results. */
 @Service
 public class MetricsCollectionService {
 
     private final MetricsRepository metricsRepository;
 
+    /** Uses the active profile's repository as the source of metric data. */
     public MetricsCollectionService(MetricsRepository metricsRepository) {
         this.metricsRepository = metricsRepository;
     }
 
+    /** Returns cached metrics when the same resource and duration are requested. */
     @Cacheable(value = "resourceMetrics", key = "#resourceId + '-' + #days")
     public ResourceMetrics collectMetrics(String resourceId, double days) {
         Duration timeRange = Duration.ofSeconds(Math.round(days * 86_400));
@@ -39,10 +42,12 @@ public class MetricsCollectionService {
         );
     }
 
+    /** Lists resources supplied by the active metrics repository. */
     public List<String> getMonitoredResources() {
         return metricsRepository.getMonitoredResourceIds();
     }
 
+    /** Computes overall, peak, off-peak, and request averages in UTC. */
     private ResourceMetrics.AggregatedStats computeAggregatedStats(
             List<MetricPoint> dataPoints, PeakHoursConfig config
     ) {
@@ -100,14 +105,17 @@ public class MetricsCollectionService {
         );
     }
 
+    /** Returns the schedule configured by the active repository. */
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return metricsRepository.getPeakHoursConfig(resourceId);
     }
 
+    /** Returns discovered capacity, if supported by the active repository. */
     public CurrentConfig getCurrentConfig(String resourceId) {
         return metricsRepository.getCurrentConfig(resourceId);
     }
 
+    /** Returns the public resource type inferred from its stable identifier. */
     private String getColumnType(String resourceId) {
         if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
         if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
@@ -117,6 +125,7 @@ public class MetricsCollectionService {
         return "UNKNOWN";
     }
 
+    /** Provides display names while preserving unknown IDs verbatim. */
     private String getResourceName(String resourceId) {
         return switch (resourceId) {
             case "nginx-busy" -> "Nginx Busy (K3s)";

@@ -52,6 +52,7 @@ public class MockMetricsRepository implements MetricsRepository {
     private final String kubernetesResourceId;
     private MetricsSnapshot kubeSnapshot;
 
+    /** Creates the mock source and selects the resource whose snapshot is replayed. */
     public MockMetricsRepository(
             SnapshotStore snapshotStore,
             @Value("${app.mock.kubernetes-id:nginx-busy}") String kubernetesResourceId
@@ -60,6 +61,7 @@ public class MockMetricsRepository implements MetricsRepository {
         this.kubernetesResourceId = kubernetesResourceId;
     }
 
+    /** Loads an exported Kubernetes snapshot before serving mock requests. */
     @PostConstruct
     void loadKubeSnapshot() {
         kubeSnapshot = snapshotStore.read(kubernetesResourceId);
@@ -69,6 +71,7 @@ public class MockMetricsRepository implements MetricsRepository {
         }
     }
 
+    /** Replays CPU samples or generates mock CPU data for the requested window. */
     @Override
     public List<MetricPoint> getCpuUtilization(String resourceId, Duration timeRange) {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
@@ -83,6 +86,7 @@ public class MockMetricsRepository implements MetricsRepository {
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 75.0, 5.0, 15.0);
     }
 
+    /** Replays memory samples or generates mock memory data for the requested window. */
     @Override
     public List<MetricPoint> getMemoryUtilization(String resourceId, Duration timeRange) {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
@@ -94,6 +98,7 @@ public class MockMetricsRepository implements MetricsRepository {
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 55.0, 12.0, 10.0);
     }
 
+    /** Replays request samples or generates mock request data for the requested window. */
     @Override
     public List<MetricPoint> getActiveRequestCount(String resourceId, Duration timeRange) {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
@@ -105,6 +110,7 @@ public class MockMetricsRepository implements MetricsRepository {
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 200.0, 5.0, 50.0);
     }
 
+    /** Returns a snapshot unchanged or merges generated metric streams. */
     @Override
     public List<MetricPoint> getAllMetrics(String resourceId, Duration timeRange) {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
@@ -130,16 +136,19 @@ public class MockMetricsRepository implements MetricsRepository {
         return merged;
     }
 
+    /** Exposes the configured mock resource, normally one Kubernetes cluster. */
     @Override
     public List<String> getMonitoredResourceIds() {
         return List.of(kubernetesResourceId);
     }
 
+    /** Returns resource-specific mock schedule data or shared defaults. */
     @Override
     public PeakHoursConfig getPeakHoursConfig(String resourceId) {
         return PEAK_CONFIGS.getOrDefault(resourceId, PeakHoursConfig.defaults());
     }
 
+    /** Returns replayed discovered config or representative mock capacity values. */
     @Override
     public CurrentConfig getCurrentConfig(String resourceId) {
         if (kubeSnapshot != null
@@ -169,6 +178,7 @@ public class MockMetricsRepository implements MetricsRepository {
         }
     }
 
+    /** Returns replayed points when the requested resource has a loaded snapshot. */
     private List<MetricPoint> snapshotPoints(String resourceId, Duration timeRange) {
         if (kubeSnapshot == null || !kubernetesResourceId.equals(resourceId)
                 || kubeSnapshot.dataPoints() == null || kubeSnapshot.dataPoints().isEmpty()) {
@@ -254,6 +264,7 @@ public class MockMetricsRepository implements MetricsRepository {
         return result;
     }
 
+    /** Chooses the display downsampling cadence for a requested range. */
     private static long stepSecondsForRange(Duration range) {
         long seconds = range.getSeconds();
         if (seconds < 3600) return 60;
@@ -261,6 +272,7 @@ public class MockMetricsRepository implements MetricsRepository {
         return 3600;
     }
 
+    /** Generates a bounded weekday/weekend sine-wave utilization profile. */
     private List<MetricPoint> generateSineWaveMetrics(
             String resourceId, Duration timeRange,
             int peakStartHour, int peakEndHour,
@@ -297,6 +309,7 @@ public class MockMetricsRepository implements MetricsRepository {
         return points;
     }
 
+    /** Infers the public resource type from the mock ID prefix. */
     private String getResourceType(String resourceId) {
         if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
         if (resourceId.startsWith("aks")) return "AKS_CLUSTER";

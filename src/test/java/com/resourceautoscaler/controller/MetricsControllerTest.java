@@ -11,8 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/** Tests the metrics controller behavior and regression cases. */
 class MetricsControllerTest {
 
+    /** Verifies peak config endpoint returns resource specific config. */
     @Test
     void peakConfigEndpointReturnsResourceSpecificConfig() {
         PeakHoursConfig functionConfig = new PeakHoursConfig(

@@ -3,6 +3,7 @@ package com.resourceautoscaler.model;
 import java.time.Instant;
 import java.time.LocalTime;
 
+/** Actionable scaling recommendation with schedule, confidence, and savings. */
 public record ScalingRecommendation(
     String resourceId,
     String resourceName,
@@ -20,6 +21,7 @@ public record ScalingRecommendation(
     Instant generatedAt,
     String rationale
 ) {
+    /** Resource families supported by generated configuration. */
     public enum ResourceType {
         AZURE_VM,
         AKS_DEPLOYMENT,
@@ -27,6 +29,7 @@ public record ScalingRecommendation(
         AZURE_FUNCTION
     }
 
+    /** Rendering strategy selected for a recommendation. */
     public enum RecommendationType {
         SCHEDULE_BASED_SCALING,
         RIGHTSIZING,

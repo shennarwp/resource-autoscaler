@@ -9,10 +9,12 @@ import java.time.LocalTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Tests the code generation service behavior and regression cases. */
 class CodeGenerationServiceTest {
 
     private final CodeGenerationService service = new CodeGenerationService();
 
+    /** Verifies keda yaml uses supported cron and cpu metadata. */
     @Test
     void kedaYamlUsesSupportedCronAndCpuMetadata() {
         ScalingRecommendation rec = new ScalingRecommendation(
@@ -40,6 +42,7 @@ class CodeGenerationServiceTest {
         assertTrue(yaml.contains("end: \"18:00\""));
     }
 
+    /** Verifies app service autoscale uses service plan target. */
     @Test
     void appServiceAutoscaleUsesServicePlanTarget() {
         ScalingRecommendation rec = new ScalingRecommendation(

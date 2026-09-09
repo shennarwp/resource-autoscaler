@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/** HTTP endpoints for recommendations and generated scaling manifests. */
 @RestController
 @RequestMapping("/api/v1/recommendations")
 public class RecommendationsController {
@@ -24,6 +25,7 @@ public class RecommendationsController {
     private final CodeGenerationService codeGenerationService;
     private final CostEstimateService costEstimateService;
 
+    /** Injects analysis, pricing, collection, and code-rendering collaborators. */
     public RecommendationsController(
             MetricsCollectionService metricsService,
             AnalysisService analysisService,
@@ -36,6 +38,7 @@ public class RecommendationsController {
         this.costEstimateService = costEstimateService;
     }
 
+    /** Analyzes the requested window and returns applicable scaling recommendations. */
     @GetMapping("/{resourceId}")
     public ResponseEntity<List<ScalingRecommendation>> getRecommendations(
             @PathVariable String resourceId,
@@ -50,6 +53,10 @@ public class RecommendationsController {
         return ResponseEntity.ok(recs);
     }
 
+    /**
+     * Applies optional schedule and cost overrides, then renders KEDA or Terraform
+     * code for the first applicable recommendation. Returns 204 when none applies.
+     */
     @PostMapping("/generate")
     public ResponseEntity<RecommendationResponse> generateCode(
             @RequestBody RecommendationRequest request

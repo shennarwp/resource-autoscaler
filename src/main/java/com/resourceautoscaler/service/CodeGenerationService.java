@@ -3,9 +3,11 @@ package com.resourceautoscaler.service;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import org.springframework.stereotype.Service;
 
+/** Renders recommendations as deployable KEDA YAML or Azure Terraform HCL. */
 @Service
 public class CodeGenerationService {
 
+    /** Generates a KEDA ScaledObject with UTC cron and CPU triggers for AKS. */
     public String generateKedaScaledObject(ScalingRecommendation recommendation) {
         String resourceName = recommendation.resourceName().trim();
         String appName = resourceName.toLowerCase().replace(" ", "-");
@@ -67,6 +69,7 @@ public class CodeGenerationService {
             );
     }
 
+    /** Generates an App Service plan autoscale profile with scheduled capacity. */
     public String generateAppServiceAutoscale(ScalingRecommendation recommendation) {
         String resourceName = recommendation.resourceName().toLowerCase().replace(" ", "-");
         String peakHours = formatHourList(recommendation.peakStart().getHour(), recommendation.peakEnd().getHour());
@@ -164,6 +167,7 @@ public class CodeGenerationService {
             );
     }
 
+    /** Generates a generic Azure Monitor autoscale profile for the resource type. */
     public String generateTerraformAutoscale(ScalingRecommendation recommendation) {
         String resourceName = recommendation.resourceName().toLowerCase().replace(" ", "_");
         String resourceType = getTerraformResourceType(recommendation.resourceType());
@@ -272,10 +276,12 @@ public class CodeGenerationService {
             );
     }
 
+    /** Formats a schedule time as the KEDA {@code HH:mm} value. */
     private String formatCronTime(java.time.LocalTime time) {
         return String.format("%02d:%02d", time.getHour(), time.getMinute());
     }
 
+    /** Lists peak hours for Terraform recurrence, handling an all-day schedule. */
     private String formatHourList(int startHour, int endHour) {
         if (startHour == endHour) {
             return "0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23";
@@ -290,6 +296,7 @@ public class CodeGenerationService {
         return sb.toString();
     }
 
+    /** Lists hours outside the configured peak interval. */
     private String formatOffPeakHourList(int startHour, int endHour) {
         StringBuilder sb = new StringBuilder();
         for (int hour = 0; hour < 24; hour++) {
@@ -302,6 +309,7 @@ public class CodeGenerationService {
         return sb.toString();
     }
 
+    /** Maps recommendation types to AzureRM Terraform resource names. */
     private String getTerraformResourceType(ScalingRecommendation.ResourceType type) {
         return switch (type) {
             case AZURE_VM -> "linux_virtual_machine";

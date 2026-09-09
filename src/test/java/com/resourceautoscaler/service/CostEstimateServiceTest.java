@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/** Tests the cost estimate service behavior and regression cases. */
 class CostEstimateServiceTest {
 
     private final CostEstimateService service = new CostEstimateService();
 
+    /** Verifies estimates cost by resource type. */
     @Test
     void estimatesCostByResourceType() {
         assertEquals(2400.00, service.estimateMonthlyCost("AKS_CLUSTER"), 0.001);
@@ -19,6 +21,7 @@ class CostEstimateServiceTest {
         assertEquals(200.00, service.estimateMonthlyCost("UNKNOWN"), 0.001);
     }
 
+    /** Verifies kubernetes cluster cost is derived from discovered node capacity. */
     @Test
     void kubernetesClusterCostIsDerivedFromDiscoveredNodeCapacity() {
         CurrentConfig k3s = new CurrentConfig("nginx-busy", 3, 3, 0.025, 0.150, 0.008, 0.032, 1, 4.0625, true);
@@ -27,6 +30,7 @@ class CostEstimateServiceTest {
         assertEquals(expected, service.estimateMonthlyCost(k3s, "K8S_CLUSTER"), 0.001);
     }
 
+    /** Verifies kubernetes cluster cost includes all discovered nodes. */
     @Test
     void kubernetesClusterCostIncludesAllDiscoveredNodes() {
         CurrentConfig cluster = new CurrentConfig(
@@ -35,6 +39,7 @@ class CostEstimateServiceTest {
         assertEquals(640.0, service.estimateMonthlyCost(cluster, "AKS_CLUSTER"), 0.001);
     }
 
+    /** Verifies kubernetes cluster without discovered nodes falls back to flat estimate. */
     @Test
     void kubernetesClusterWithoutDiscoveredNodesFallsBackToFlatEstimate() {
         assertEquals(2400.00,
