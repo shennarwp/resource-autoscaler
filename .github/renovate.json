@@ -21,6 +21,7 @@
     "group:recommended"
   ],
   "baseBranchPatterns": ["main"],
+  "enabledManagers": ["maven", "npm", "dockerfile", "docker-compose", "github-actions"],
   "rebaseWhen": "conflicted",
   "addLabels": ["dependencies", "renovate"],
   "rangeStrategy": "bump",
@@ -132,6 +133,27 @@
       "matchDepNames": ["typescript"],
       "matchUpdateTypes": ["major"],
       "groupName": "typescript major"
+    },
+    {
+      "description": "Group Spring Boot updates",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.springframework.boot:*"],
+      "groupName": "spring-boot",
+      "addLabels": ["spring"]
+    },
+    {
+      "description": "Group Azure SDK updates",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.azure:*"],
+      "groupName": "azure-sdk",
+      "addLabels": ["azure"]
+    },
+    {
+      "description": "Automerge Maven test dependency patch updates",
+      "matchManagers": ["maven"],
+      "matchDepTypes": ["test"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
     }
   ],
   "platform": "github",
