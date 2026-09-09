@@ -14,7 +14,9 @@ export default function CostAnalysisPage() {
 
   if (loading) return <div className="loading">Analyzing costs...</div>;
   if (error) return <div className="error">{error}</div>;
-  if (!analysis) return null;
+  if (!analysis || !analysis.resources?.length) {
+    return <div className="empty-state">No resources to analyze.</div>;
+  }
 
   const chartData = analysis.resources.map((r) => ({
     name: r.resourceName,

@@ -22,7 +22,7 @@ class CostEstimateServiceTest {
     @Test
     void kubernetesClusterCostIsDerivedFromDiscoveredNodeCapacity() {
         CurrentConfig k3s = new CurrentConfig("nginx-busy", 3, 3, 0.025, 0.150, 0.008, 0.032, 1, 4.0625, true);
-        double expected = 4.0625 * CostEstimateService.HOURLY_RATE_PER_CORE_USD * CostEstimateService.HOURS_PER_MONTH;
+        double expected = 4.0625 * 1.0 * 40.0;
 
         assertEquals(expected, service.estimateMonthlyCost(k3s, "K8S_CLUSTER"), 0.001);
     }
