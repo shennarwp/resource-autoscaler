@@ -164,7 +164,7 @@ class AnalysisServiceTest {
         String rationale = recs.getFirst().rationale();
         assertTrue(rationale.contains("Observed utilization pattern"));
         assertTrue(rationale.contains("07:00-18:00 UTC schedule"));
-        assertTrue(rationale.contains("estimated savings are 33.6%"));
+        assertTrue(rationale.contains("estimated savings are 33,6%"));
         assertFalse(rationale.contains("minimal risk"));
     }
 }
