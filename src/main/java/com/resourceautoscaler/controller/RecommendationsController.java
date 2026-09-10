@@ -55,7 +55,7 @@ public class RecommendationsController {
             baseConfig.scalingCooldownMinutes()
         );
 
-        var result = pipeline.recommendWithOverrides(request.resourceId(), 30, config, request.currentMonthlyCostUsd());
+        RecommendationPipelineService.RecommendationResult result = pipeline.recommendWithOverrides(request.resourceId(), 30, config, request.currentMonthlyCostUsd());
         if (result.recommendations().isEmpty()) {
             return ResponseEntity.noContent().build();
         }

@@ -40,7 +40,7 @@ public class CostOptimizationService {
 
         for (String resourceId : resources) {
             try {
-                var result = pipeline.recommend(resourceId, 30);
+                RecommendationPipelineService.RecommendationResult result = pipeline.recommend(resourceId, 30);
                 double monthlyCost = result.monthlyCostUsd();
                 double optimizedCost = monthlyCost;
                 List<String> optimizations = new ArrayList<>();
