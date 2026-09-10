@@ -1,5 +1,6 @@
 package com.resourceautoscaler.repository;
 
+import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.monitor.query.LogsQueryClient;
 import com.azure.monitor.query.LogsQueryClientBuilder;
@@ -63,7 +64,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
     /** Creates the Log Analytics client used for Container Insights queries. */
     @PostConstruct
     public void init() {
-        var credential = new ClientSecretCredentialBuilder()
+        ClientSecretCredential credential = new ClientSecretCredentialBuilder()
                 .tenantId(tenantId)
                 .clientId(clientId)
                 .clientSecret(clientSecret)

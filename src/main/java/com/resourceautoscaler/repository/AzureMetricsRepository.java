@@ -1,6 +1,7 @@
 package com.resourceautoscaler.repository;
 
 import com.azure.core.util.Context;
+import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.monitor.query.MetricsQueryClient;
 import com.azure.monitor.query.MetricsQueryClientBuilder;
@@ -57,7 +58,7 @@ public class AzureMetricsRepository implements MetricsRepository {
     /** Creates the Azure Monitor client from the configured service principal. */
     @PostConstruct
     public void init() {
-        var credential = new ClientSecretCredentialBuilder()
+        ClientSecretCredential credential = new ClientSecretCredentialBuilder()
                 .tenantId(tenantId)
                 .clientId(clientId)
                 .clientSecret(clientSecret)

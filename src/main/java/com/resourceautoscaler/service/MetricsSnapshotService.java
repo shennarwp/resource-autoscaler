@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
@@ -65,7 +66,7 @@ public class MetricsSnapshotService {
         );
 
         try {
-            var file = snapshotStore.write(snapshot);
+            Path file = snapshotStore.write(snapshot);
             log.info("Exported metrics snapshot for {} ({} points, {} -> {}) to {}",
                     resourceId, dataPoints.size(), start, end, file);
             return new SnapshotDownload(file.toString(), dataPoints.size(), snapshot.downloadedAt());
