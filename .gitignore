@@ -47,5 +47,8 @@ docker-compose.override.yml
 .env.*
 !.env.example
 
+# Lefthook local overrides
+lefthook-local.yml
+
 # Runtime data
 data/
