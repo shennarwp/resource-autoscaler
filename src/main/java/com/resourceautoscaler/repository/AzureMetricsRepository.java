@@ -14,6 +14,7 @@ import com.azure.monitor.query.models.TimeSeriesElement;
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
+import com.resourceautoscaler.model.ResourceTypeResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
@@ -95,7 +96,7 @@ public class AzureMetricsRepository implements MetricsRepository {
         List<MetricPoint> cpu = getCpuUtilization(resourceId, timeRange);
         List<MetricPoint> mem = getMemoryUtilization(resourceId, timeRange);
         List<MetricPoint> req = getActiveRequestCount(resourceId, timeRange);
-        return mergeByTimestamp(resourceId, getResourceType(resourceId), cpu, mem, req);
+        return mergeByTimestamp(resourceId, ResourceTypeResolver.resourceType(resourceId), cpu, mem, req);
     }
 
     /**
@@ -207,7 +208,7 @@ public class AzureMetricsRepository implements MetricsRepository {
                             double transformed = transform.applyAsDouble(total);
                             points.add(new MetricPoint(
                                     timestamp, transformed, transformed, (int) transformed,
-                                    resourceId, getResourceType(resourceId)
+                                    resourceId, ResourceTypeResolver.resourceType(resourceId)
                             ));
                         }
                     }
@@ -223,16 +224,6 @@ public class AzureMetricsRepository implements MetricsRepository {
             "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Web/sites/%s",
             subscriptionId, resourceGroup, resourceId
         );
-    }
-
-    /** Infers the API resource type from the repository's stable ID prefixes. */
-    private String getResourceType(String resourceId) {
-        if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
-        if (resourceId.startsWith("vm")) return "AZURE_VM";
-        if (resourceId.startsWith("app")) return "APP_SERVICE";
-        if (resourceId.startsWith("func")) return "AZURE_FUNCTION";
-        if (resourceId.startsWith("autoscaler")) return "APP_SERVICE";
-        return "UNKNOWN";
     }
 
     private static void validateResourceId(String resourceId) {

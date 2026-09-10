@@ -6,10 +6,7 @@ import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
-import com.resourceautoscaler.service.AnalysisService;
-import com.resourceautoscaler.service.CodeGenerationService;
-import com.resourceautoscaler.service.CostEstimateService;
-import com.resourceautoscaler.service.MetricsCollectionService;
+import com.resourceautoscaler.service.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -39,8 +36,10 @@ class RecommendationsControllerTest {
         AnalysisService analysisService = mock(AnalysisService.class);
         CodeGenerationService codeGenerationService = mock(CodeGenerationService.class);
         CostEstimateService costEstimateService = mock(CostEstimateService.class);
-        RecommendationsController controller =
-            new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
+        RecommendationPipelineService pipeline =
+                new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
+
+        RecommendationsController controller = new RecommendationsController(pipeline, codeGenerationService);
 
         ResourceMetrics metrics = sampleMetrics("function-data-processor", "AZURE_FUNCTION");
         when(metricsService.collectMetrics("function-data-processor", 30.0)).thenReturn(metrics);
@@ -68,8 +67,10 @@ class RecommendationsControllerTest {
         AnalysisService analysisService = mock(AnalysisService.class);
         CodeGenerationService codeGenerationService = mock(CodeGenerationService.class);
         CostEstimateService costEstimateService = mock(CostEstimateService.class);
-        RecommendationsController controller =
-            new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
+        RecommendationPipelineService pipeline =
+                new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
+
+        RecommendationsController controller = new RecommendationsController(pipeline, codeGenerationService);
 
         CurrentConfig k8sConfig = new CurrentConfig("nginx-busy", 3, 3, 0.025, 0.150, 0.008, 0.032, 1, 4.0, true);
         ResourceMetrics metrics = sampleMetrics("nginx-busy", "K8S_CLUSTER");
@@ -95,8 +96,10 @@ class RecommendationsControllerTest {
         AnalysisService analysisService = mock(AnalysisService.class);
         CodeGenerationService codeGenerationService = mock(CodeGenerationService.class);
         CostEstimateService costEstimateService = mock(CostEstimateService.class);
-        RecommendationsController controller =
-            new RecommendationsController(metricsService, analysisService, codeGenerationService, costEstimateService);
+        RecommendationPipelineService pipeline =
+                new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
+
+        RecommendationsController controller = new RecommendationsController(pipeline, codeGenerationService);
 
         ResourceMetrics metrics = sampleMetrics("appservice-api-gateway", "APP_SERVICE");
         CurrentConfig currentConfig = CurrentConfig.unknown("appservice-api-gateway");
