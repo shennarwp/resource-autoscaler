@@ -54,14 +54,14 @@ public class CostOptimizationService {
 
                 double potentialSavings = Math.max(0.0, monthlyCost - optimizedCost);
                 breakdowns.add(new CostAnalysis.ResourceCostBreakdown(
-                        resourceId,
-                        result.metrics().resourceName(),
-                        result.metrics().resourceType(),
-                        monthlyCost, optimizedCost, potentialSavings,
-                        monthlyCost > 0 ? (potentialSavings / monthlyCost) * 100 : 0,
-                        result.metrics().aggregated().peakHourUtilization(),
-                        result.metrics().aggregated().offPeakHourUtilization(),
-                        optimizations
+                    resourceId,
+                    result.metrics().resourceName(),
+                    result.metrics().resourceType(),
+                    monthlyCost, optimizedCost, potentialSavings,
+                    monthlyCost > 0 ? (potentialSavings / monthlyCost) * 100 : 0,
+                    result.metrics().aggregated().peakHourUtilization(),
+                    result.metrics().aggregated().offPeakHourUtilization(),
+                    optimizations
                 ));
                 totalCurrent += monthlyCost;
                 totalOptimized += optimizedCost;

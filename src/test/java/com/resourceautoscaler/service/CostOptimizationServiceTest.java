@@ -87,9 +87,9 @@ class CostOptimizationServiceTest {
         AnalysisService analysisService = mock(AnalysisService.class);
         CostEstimateService costEstimateService = mock(CostEstimateService.class);
         RecommendationPipelineService pipeline =
-                new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
+            new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
         CostOptimizationService service =
-                new CostOptimizationService(pipeline);
+            new CostOptimizationService(pipeline);
 
         ResourceMetrics metrics = new ResourceMetrics(
             "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
