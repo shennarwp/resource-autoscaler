@@ -371,10 +371,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
     /** Chooses one-minute, five-minute, or hourly aggregation for the range. */
     private static long stepSeconds(Duration timeRange) {
-        long seconds = timeRange.getSeconds();
-        if (seconds < 3600) return 60;
-        if (seconds < 3 * 86400) return 300;
-        return 3600;
+        return SnapshotReplayer.stepSecondsForRange(timeRange);
     }
 
     private static void validateResourceId(String resourceId) {
