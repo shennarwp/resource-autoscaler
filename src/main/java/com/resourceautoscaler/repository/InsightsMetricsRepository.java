@@ -7,6 +7,7 @@ import com.azure.monitor.query.models.*;
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.PeakHoursConfig;
+import com.resourceautoscaler.model.ResourceTypeResolver;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -280,7 +281,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
             double mem = cpuOnly == null || !cpuOnly ? row.memPct : 0;
             points.add(new MetricPoint(
                     row.timestamp, cpu, mem, 0,
-                    resourceId, resourceType(resourceId)
+                    resourceId, ResourceTypeResolver.resourceType(resourceId)
             ));
         }
         return points;
@@ -373,12 +374,6 @@ public class InsightsMetricsRepository implements MetricsRepository {
         if (seconds < 3600) return 60;
         if (seconds < 3 * 86400) return 300;
         return 3600;
-    }
-
-    /** Infers the public resource type from the Container Insights resource ID. */
-    private String resourceType(String resourceId) {
-        if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
-        return "UNKNOWN";
     }
 
     private static void validateResourceId(String resourceId) {

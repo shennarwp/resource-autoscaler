@@ -3,6 +3,7 @@ package com.resourceautoscaler.service;
 import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.MetricPoint;
 import com.resourceautoscaler.model.MetricsSnapshot;
+import com.resourceautoscaler.model.ResourceTypeResolver;
 import com.resourceautoscaler.repository.MetricsRepository;
 import com.resourceautoscaler.store.SnapshotStore;
 import org.slf4j.Logger;
@@ -54,7 +55,7 @@ public class MetricsSnapshotService {
         MetricsSnapshot snapshot = new MetricsSnapshot(
                 resourceId,
                 resourceType,
-                resourceName(resourceId),
+                ResourceTypeResolver.displayName(resourceId),
                 Instant.now().toString(),
                 start.toString(),
                 end.toString(),
@@ -75,13 +76,4 @@ public class MetricsSnapshotService {
 
     /** Result returned after a snapshot file has been persisted. */
     public record SnapshotDownload(String file, int pointCount, String downloadedAt) {}
-
-    /** Supplies the display name embedded in exported snapshots. */
-    private String resourceName(String resourceId) {
-        return switch (resourceId) {
-            case "nginx-busy" -> "Nginx Busy (K3s)";
-            case "nginx-idle" -> "Nginx Idle (K3s)";
-            default -> resourceId;
-        };
-    }
 }

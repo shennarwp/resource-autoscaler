@@ -1,9 +1,6 @@
 package com.resourceautoscaler.repository;
 
-import com.resourceautoscaler.model.CurrentConfig;
-import com.resourceautoscaler.model.MetricPoint;
-import com.resourceautoscaler.model.MetricsSnapshot;
-import com.resourceautoscaler.model.PeakHoursConfig;
+import com.resourceautoscaler.model.*;
 import com.resourceautoscaler.store.SnapshotStore;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -18,7 +15,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Default profile repository. The mock UI shows only the Kubernetes cluster
@@ -77,7 +73,7 @@ public class MockMetricsRepository implements MetricsRepository {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
         if (full != null) {
             return full.stream()
-                    .map(p -> new MetricPoint(p.timestamp(), p.cpuUtilization(), 0, 0, resourceId, getResourceType(resourceId)))
+                    .map(p -> new MetricPoint(p.timestamp(), p.cpuUtilization(), 0, 0, resourceId, ResourceTypeResolver.resourceType(resourceId)))
                     .toList();
         }
         if ("appservice-api-gateway".equals(resourceId)) {
@@ -92,7 +88,7 @@ public class MockMetricsRepository implements MetricsRepository {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
         if (full != null) {
             return full.stream()
-                    .map(p -> new MetricPoint(p.timestamp(), 0, p.memoryUtilization(), 0, resourceId, getResourceType(resourceId)))
+                    .map(p -> new MetricPoint(p.timestamp(), 0, p.memoryUtilization(), 0, resourceId, ResourceTypeResolver.resourceType(resourceId)))
                     .toList();
         }
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 55.0, 12.0);
@@ -104,7 +100,7 @@ public class MockMetricsRepository implements MetricsRepository {
         List<MetricPoint> full = snapshotPoints(resourceId, timeRange);
         if (full != null) {
             return full.stream()
-                    .map(p -> new MetricPoint(p.timestamp(), 0, 0, p.activeRequestCount(), resourceId, getResourceType(resourceId)))
+                    .map(p -> new MetricPoint(p.timestamp(), 0, 0, p.activeRequestCount(), resourceId, ResourceTypeResolver.resourceType(resourceId)))
                     .toList();
         }
         return generateSineWaveMetrics(resourceId, timeRange, 7, 18, 200.0, 5.0);
@@ -130,7 +126,7 @@ public class MockMetricsRepository implements MetricsRepository {
                 mem.get(i).memoryUtilization(),
                 (int) req.get(i).cpuUtilization(),
                 resourceId,
-                getResourceType(resourceId)
+                ResourceTypeResolver.resourceType(resourceId)
             ));
         }
         return merged;
@@ -179,92 +175,8 @@ public class MockMetricsRepository implements MetricsRepository {
                 || kubeSnapshot.dataPoints() == null || kubeSnapshot.dataPoints().isEmpty()) {
             return null;
         }
-        Instant end = alignedWindowEnd(kubeSnapshot, Instant.now());
-        return samplesForRange(kubeSnapshot, end.minus(timeRange), end, resourceId);
-    }
-
-    /**
-     * Maps the wall-clock time of {@code now} onto the snapshot's last day so the
-     * replay window tracks tick-by-tick clock alignment (e.g. "now, 3h back")
-     * against the downloaded sample day, rather than always ending at the snapshot's
-     * newest data point. If now's clock time is past the newest data point, the end
-     * is clamped to it. Exposed as static so the mapping is unit-testable.
-     */
-    static Instant alignedWindowEnd(MetricsSnapshot snapshot, Instant now) {
-        List<MetricsSnapshot.Point> points = snapshot.dataPoints();
-        if (points == null || points.isEmpty()) {
-            return now;
-        }
-        Instant last = Instant.parse(points.getLast().timestamp());
-        java.time.ZonedDateTime lastDay = last.atZone(java.time.ZoneOffset.UTC);
-        java.time.LocalTime clock = now.atZone(java.time.ZoneOffset.UTC).toLocalTime()
-                .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
-        Instant candidate = lastDay.with(clock).toInstant();
-        return candidate.isAfter(last) ? last : candidate;
-    }
-
-    /**
-     * Replays the snapshot's samples for an arbitrary window by tiling the snapshot's
-     * span (most recent copy first) and returning points falling inside the window,
-     * downsampled to the step cadence of the requested range. Weekend days render a
-     * light baseline in place of the tiled workload, and any zero-cpu sample gets a
-     * random 7-15% baseline so idle points are never a flat 0. Exposed as static so
-     * the propagation logic is unit-testable.
-     */
-    static List<MetricPoint> samplesForRange(MetricsSnapshot snapshot, Instant start, Instant end, String resourceId) {
-        List<MetricsSnapshot.Point> points = snapshot.dataPoints();
-        if (points == null || points.isEmpty()) {
-            return List.of();
-        }
-
-        Instant first = Instant.parse(points.getFirst().timestamp());
-        Instant last = Instant.parse(points.getLast().timestamp());
-        long step = stepSecondsForRange(Duration.between(start, end));
-        long spanSeconds = Math.max(Duration.between(first, last).getSeconds()
-                + (snapshot.stepSeconds() != null && snapshot.stepSeconds() > 0 ? snapshot.stepSeconds() : 60), step);
-
-        long windowSeconds = Duration.between(start, end).getSeconds();
-        long copies = Math.max(windowSeconds / spanSeconds + 1, 1);
-        String resourceType = snapshot.resourceType();
-
-        List<MetricPoint> result = new ArrayList<>();
-        for (long copy = copies - 1; copy >= 0; copy--) {
-            long offsetSeconds = copy * spanSeconds;
-            long lastBucket = -1;
-            for (MetricsSnapshot.Point p : points) {
-                Instant ts = Instant.parse(p.timestamp()).minusSeconds(offsetSeconds);
-                if (ts.isBefore(start) || ts.isAfter(end)) {
-                    continue;
-                }
-                long bucket = ts.getEpochSecond() / step;
-                if (bucket == lastBucket) {
-                    continue;
-                }
-                lastBucket = bucket;
-                int weekday = ts.atZone(java.time.ZoneOffset.UTC).getDayOfWeek().getValue();
-                boolean weekend = weekday == 6 || weekday == 7;
-                double cpu = weekend ? 0.0 : p.cpuUtilization();
-                if (!weekend && cpu < 7.0) {
-                    cpu = ThreadLocalRandom.current().nextDouble(7.0, 15.0);
-                }
-                result.add(new MetricPoint(
-                    ts,
-                    cpu,
-                    p.memoryUtilization(),
-                    weekend ? 0 : p.activeRequestCount(),
-                    resourceId, resourceType
-                ));
-            }
-        }
-        return result;
-    }
-
-    /** Chooses the display downsampling cadence for a requested range. */
-    private static long stepSecondsForRange(Duration range) {
-        long seconds = range.getSeconds();
-        if (seconds < 3600) return 60;
-        if (seconds < 3 * 86400) return 300;
-        return 3600;
+        Instant end = SnapshotReplayer.alignedWindowEnd(kubeSnapshot, Instant.now());
+        return SnapshotReplayer.samplesForRange(kubeSnapshot, end.minus(timeRange), end, resourceId);
     }
 
     /** Generates a bounded weekday/weekend sine-wave utilization profile. */
@@ -298,19 +210,9 @@ public class MockMetricsRepository implements MetricsRepository {
 
             points.add(new MetricPoint(
                 t, value, value * 0.85, (int)(value * 3),
-                resourceId, getResourceType(resourceId)
+                resourceId, ResourceTypeResolver.resourceType(resourceId)
             ));
         }
         return points;
-    }
-
-    /** Infers the public resource type from the mock ID prefix. */
-    private String getResourceType(String resourceId) {
-        if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
-        if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
-        if (resourceId.startsWith("vm")) return "AZURE_VM";
-        if (resourceId.startsWith("app")) return "APP_SERVICE";
-        if (resourceId.startsWith("func")) return "AZURE_FUNCTION";
-        return "UNKNOWN";
     }
 }

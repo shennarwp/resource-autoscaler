@@ -1,9 +1,6 @@
 package com.resourceautoscaler.service;
 
-import com.resourceautoscaler.model.CurrentConfig;
-import com.resourceautoscaler.model.MetricPoint;
-import com.resourceautoscaler.model.PeakHoursConfig;
-import com.resourceautoscaler.model.ResourceMetrics;
+import com.resourceautoscaler.model.*;
 import com.resourceautoscaler.repository.MetricsRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -34,8 +31,8 @@ public class MetricsCollectionService {
 
         return new ResourceMetrics(
             resourceId,
-            getColumnType(resourceId),
-            getResourceName(resourceId),
+            ResourceTypeResolver.resourceType(resourceId),
+            ResourceTypeResolver.displayName(resourceId),
             Instant.now(),
             dataPoints,
             stats
@@ -113,28 +110,5 @@ public class MetricsCollectionService {
     /** Returns discovered capacity, if supported by the active repository. */
     public CurrentConfig getCurrentConfig(String resourceId) {
         return metricsRepository.getCurrentConfig(resourceId);
-    }
-
-    /** Returns the public resource type inferred from its stable identifier. */
-    private String getColumnType(String resourceId) {
-        if (resourceId.startsWith("nginx")) return "K8S_CLUSTER";
-        if (resourceId.startsWith("aks")) return "AKS_CLUSTER";
-        if (resourceId.startsWith("vm")) return "AZURE_VM";
-        if (resourceId.startsWith("app")) return "APP_SERVICE";
-        if (resourceId.startsWith("func")) return "AZURE_FUNCTION";
-        return "UNKNOWN";
-    }
-
-    /** Provides display names while preserving unknown IDs verbatim. */
-    private String getResourceName(String resourceId) {
-        return switch (resourceId) {
-            case "nginx-busy" -> "Nginx Busy (K3s)";
-            case "nginx-idle" -> "Nginx Idle (K3s)";
-            case "aks-primary-cluster" -> "Primary AKS Cluster";
-            case "vm-backend-01" -> "Backend VM-01";
-            case "appservice-api-gateway" -> "API Gateway";
-            case "function-data-processor" -> "Data Processor Function";
-            default -> resourceId;
-        };
     }
 }

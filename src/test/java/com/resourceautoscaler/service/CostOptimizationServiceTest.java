@@ -34,8 +34,10 @@ class CostOptimizationServiceTest {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
         AnalysisService analysisService = mock(AnalysisService.class);
         CostEstimateService costEstimateService = mock(CostEstimateService.class);
+        RecommendationPipelineService pipeline =
+                new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
         CostOptimizationService service =
-            new CostOptimizationService(metricsService, analysisService, costEstimateService);
+            new CostOptimizationService(pipeline);
 
         ResourceMetrics metrics = new ResourceMetrics(
             "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",
@@ -84,8 +86,10 @@ class CostOptimizationServiceTest {
         MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
         AnalysisService analysisService = mock(AnalysisService.class);
         CostEstimateService costEstimateService = mock(CostEstimateService.class);
+        RecommendationPipelineService pipeline =
+                new RecommendationPipelineService(metricsService, analysisService, costEstimateService);
         CostOptimizationService service =
-            new CostOptimizationService(metricsService, analysisService, costEstimateService);
+                new CostOptimizationService(pipeline);
 
         ResourceMetrics metrics = new ResourceMetrics(
             "aks-primary-cluster", "AKS_CLUSTER", "Primary AKS Cluster",

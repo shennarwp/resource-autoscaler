@@ -38,7 +38,7 @@ class MockMetricsRepositoryTest {
     @Test
     void rangeWithinSnapshotReturnsOnlyOverlappingSamples() {
         Instant base = Instant.parse("2026-09-08T05:00:00Z");
-        List<MetricPoint> points = MockMetricsRepository.samplesForRange(
+        List<MetricPoint> points = SnapshotReplayer.samplesForRange(
                 snapshot(base), base, base.plusSeconds(60), "nginx-busy");
 
         assertEquals(2, points.size());
@@ -56,7 +56,7 @@ class MockMetricsRepositoryTest {
 
         Instant start = base.minusSeconds(2 * 180);
         Instant end = base.plusSeconds(120);
-        List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
+        List<MetricPoint> points = SnapshotReplayer.samplesForRange(snap, start, end, "nginx-busy");
 
         // 3 copies of the 3-sample snapshot fall inside the window
         assertEquals(9, points.size());
@@ -74,7 +74,7 @@ class MockMetricsRepositoryTest {
 
         Instant start = base.minus(Duration.ofDays(7));
         Instant end = base.plusSeconds(120);
-        List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
+        List<MetricPoint> points = SnapshotReplayer.samplesForRange(snap, start, end, "nginx-busy");
 
         assertFalse(points.isEmpty());
         long distinctHourBuckets = points.stream()
@@ -114,11 +114,11 @@ class MockMetricsRepositoryTest {
         MetricsSnapshot snap = daySnapshot();
 
         assertEquals(Instant.parse("2026-09-08T10:40:00Z"),
-            MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-09T10:40:37Z")));
+            SnapshotReplayer.alignedWindowEnd(snap, Instant.parse("2026-09-09T10:40:37Z")));
         assertEquals(Instant.parse("2026-09-08T17:59:00Z"),
-            MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-09T19:00:00Z")));
+            SnapshotReplayer.alignedWindowEnd(snap, Instant.parse("2026-09-09T19:00:00Z")));
         assertEquals(Instant.parse("2026-09-08T06:30:00Z"),
-            MockMetricsRepository.alignedWindowEnd(snap, Instant.parse("2026-09-08T06:30:00Z")));
+            SnapshotReplayer.alignedWindowEnd(snap, Instant.parse("2026-09-08T06:30:00Z")));
     }
 
     /** Verifies replay window tracks now clock on the snapshot day. */
@@ -130,7 +130,7 @@ class MockMetricsRepositoryTest {
         MockMetricsRepository repo = new MockMetricsRepository(store, "nginx-busy");
         repo.loadKubeSnapshot();
 
-        Instant expectedEnd = MockMetricsRepository.alignedWindowEnd(daySnapshot(), Instant.now());
+        Instant expectedEnd = SnapshotReplayer.alignedWindowEnd(daySnapshot(), Instant.now());
         List<Instant> expected = daySnapshot().dataPoints().stream()
                 .map(p -> Instant.parse(p.timestamp()))
                 .filter(ts -> !ts.isBefore(expectedEnd.minus(Duration.ofHours(3)))
@@ -149,7 +149,7 @@ class MockMetricsRepositoryTest {
         Instant end = Instant.parse("2026-09-08T17:59:00Z");
         Instant start = end.minus(Duration.ofDays(4)); // Fri..Tue, spans Sat/Sun
 
-        List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
+        List<MetricPoint> points = SnapshotReplayer.samplesForRange(snap, start, end, "nginx-busy");
 
         assertTrue(points.stream().anyMatch(p -> isWeekend(p.timestamp())));
         assertTrue(points.stream().filter(p -> isWeekend(p.timestamp()))
@@ -173,7 +173,7 @@ class MockMetricsRepositoryTest {
         Instant start = Instant.parse("2026-09-08T04:30:00Z");
         Instant end = Instant.parse("2026-09-08T07:30:00Z");
 
-        List<MetricPoint> points = MockMetricsRepository.samplesForRange(snap, start, end, "nginx-busy");
+        List<MetricPoint> points = SnapshotReplayer.samplesForRange(snap, start, end, "nginx-busy");
 
         assertFalse(points.isEmpty());
         assertTrue(points.stream().allMatch(p -> p.cpuUtilization() >= 7.0 && p.cpuUtilization() <= 15.0));

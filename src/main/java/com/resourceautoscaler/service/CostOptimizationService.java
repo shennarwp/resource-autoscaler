@@ -20,24 +20,18 @@ public class CostOptimizationService {
 
     private static final Logger log = LoggerFactory.getLogger(CostOptimizationService.class);
 
-    private final MetricsCollectionService metricsService;
-    private final AnalysisService analysisService;
-    private final CostEstimateService costEstimateService;
+    private final RecommendationPipelineService pipeline;
 
     /** Wires the services used to calculate resource-level savings. */
     public CostOptimizationService(
-            MetricsCollectionService metricsService,
-            AnalysisService analysisService,
-            CostEstimateService costEstimateService
+        RecommendationPipelineService pipeline
     ) {
-        this.metricsService = metricsService;
-        this.analysisService = analysisService;
-        this.costEstimateService = costEstimateService;
+        this.pipeline = pipeline;
     }
 
     /** Analyzes every monitored resource over 30 days and totals projected savings. */
     public CostAnalysis generateCostAnalysis() {
-        List<String> resources = metricsService.getMonitoredResources();
+        List<String> resources = pipeline.getMonitoredResources();
         List<CostAnalysis.ResourceCostBreakdown> breakdowns = new ArrayList<>();
 
         double totalCurrent = 0;
@@ -46,40 +40,29 @@ public class CostOptimizationService {
 
         for (String resourceId : resources) {
             try {
-                ResourceMetrics metrics = metricsService.collectMetrics(resourceId, 30);
-                PeakHoursConfig config = metricsService.getPeakHoursConfig(resourceId);
-                CurrentConfig currentConfig = metricsService.getCurrentConfig(resourceId);
-
-                double monthlyCost = costEstimateService.estimateMonthlyCost(currentConfig, metrics.resourceType());
-                List<ScalingRecommendation> recs = analysisService.analyzeAndRecommend(
-                    metrics, config, monthlyCost, currentConfig);
-
+                var result = pipeline.recommend(resourceId, 30);
+                double monthlyCost = result.monthlyCostUsd();
                 double optimizedCost = monthlyCost;
                 List<String> optimizations = new ArrayList<>();
-                for (ScalingRecommendation rec : recs) {
+                for (ScalingRecommendation rec : result.recommendations()) {
                     double savings = Math.max(0.0, rec.estimatedMonthlySavingsUsd());
                     optimizedCost = Math.max(0.0, optimizedCost - savings);
-                    optimizations.add(rec.recommendationType().name() + ": " + rec.rationale().substring(0, Math.min(80, rec.rationale().length())) + "...");
+                    optimizations.add(rec.recommendationType().name() + ": "
+                            + rec.rationale().substring(0, Math.min(80, rec.rationale().length())) + "...");
                 }
-
-                if (!recs.isEmpty()) {
-                    optimizationsCount++;
-                }
+                if (!result.recommendations().isEmpty()) optimizationsCount++;
 
                 double potentialSavings = Math.max(0.0, monthlyCost - optimizedCost);
                 breakdowns.add(new CostAnalysis.ResourceCostBreakdown(
-                    resourceId,
-                    metrics.resourceName(),
-                    metrics.resourceType(),
-                    monthlyCost,
-                    optimizedCost,
-                    potentialSavings,
-                    monthlyCost > 0 ? (potentialSavings / monthlyCost) * 100 : 0,
-                    metrics.aggregated().peakHourUtilization(),
-                    metrics.aggregated().offPeakHourUtilization(),
-                    optimizations
+                        resourceId,
+                        result.metrics().resourceName(),
+                        result.metrics().resourceType(),
+                        monthlyCost, optimizedCost, potentialSavings,
+                        monthlyCost > 0 ? (potentialSavings / monthlyCost) * 100 : 0,
+                        result.metrics().aggregated().peakHourUtilization(),
+                        result.metrics().aggregated().offPeakHourUtilization(),
+                        optimizations
                 ));
-
                 totalCurrent += monthlyCost;
                 totalOptimized += optimizedCost;
             } catch (Exception e) {
