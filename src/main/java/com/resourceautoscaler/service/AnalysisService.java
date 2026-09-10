@@ -225,7 +225,7 @@ public class AnalysisService {
         double roundedSavings = Math.round(savingsPercent * 10.0) / 10.0;
         double offPeakIdleFraction = Math.clamp(offPeakHoursFraction(config), 0.0, 1.0) * 100.0;
 
-        return String.format(
+        return String.format(java.util.Locale.ROOT,
             "Observed utilization pattern: peak hours average %.1f%% CPU while off-peak hours average %.1f%% CPU. " +
             "Based on the configured %s-%s UTC schedule, about %.0f%% of the week is outside the peak window. " +
             "Using the current observed utilization gap and target thresholds, the estimated savings are %.1f%% of monthly spend.",
