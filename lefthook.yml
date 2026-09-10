@@ -1,0 +1,23 @@
+# lefthook.yml
+pre-commit:
+  parallel: true
+  commands:
+    frontend-lint:
+      root: "frontend/"
+      glob: "*.{ts,tsx}"
+      run: npx oxlint {staged_files}
+    secrets-scan:
+      glob: "*"
+      run: gitleaks protect --staged --redact -v
+
+pre-push:
+  parallel: true
+  commands:
+    frontend-test:
+      root: "frontend/"
+      run: npm run test
+    frontend-build:
+      root: "frontend/"
+      run: npm run build
+    backend-test:
+      run: mvn -B test
