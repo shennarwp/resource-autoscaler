@@ -1,10 +1,14 @@
 {
   "name": "resource-autoscaler",
-  // Java 25 + Maven come from the base image; Node, Docker (host socket),
-  // kubectl/helm, Azure CLI and GitHub CLI are added as features so the
-  // Debian host itself stays clean (no global Java/Node/Maven/Go).
+  // Java 25 comes from the base image (its SDKMAN is empty, so Maven is a
+  // pinned feature matching maven-wrapper.properties). Node, Docker (host
+  // socket), kubectl/helm, Azure CLI and GitHub CLI are added as features so
+  // the Debian host itself stays clean (no global Java/Node/Maven/Go).
   "image": "mcr.microsoft.com/devcontainers/java:25-bookworm",
   "features": {
+    "ghcr.io/devcontainers/features/maven:1": {
+      "version": "3.9.10"
+    },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "24",
       "nvmVersion": "latest"
