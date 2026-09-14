@@ -1,0 +1,46 @@
+{
+  "name": "resource-autoscaler",
+  // Java 25 + Maven come from the base image; Node, Docker (host socket),
+  // kubectl/helm, Azure CLI and GitHub CLI are added as features so the
+  // Debian host itself stays clean (no global Java/Node/Maven/Go).
+  "image": "mcr.microsoft.com/devcontainers/java:25-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24",
+      "nvmVersion": "latest"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [8080, 5173],
+  "portsAttributes": {
+    "8080": {
+      "label": "Spring Boot backend",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite dev server",
+      "onAutoForward": "openPreview"
+    }
+  },
+  // Inside the container the backend is on container-localhost, not on the
+  // Docker bridge gateway, so pin the Vite proxy target instead of letting
+  // vite.config.ts guess it from `ip route`.
+  "containerEnv": {
+    "VITE_BACKEND_TARGET": "http://localhost:8080"
+  },
+  "postCreateCommand": "cd frontend && npm ci",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "vitest.explorer",
+        "oxc.oxc-vscode"
+      ]
+    }
+  },
+  "shutdownAction": "none"
+}
