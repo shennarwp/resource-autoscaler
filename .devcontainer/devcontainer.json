@@ -1,18 +1,15 @@
 {
   "name": "resource-autoscaler",
-  // Java 25 comes from the base image. Maven is added via the java feature
-  // with version "none" (keeps the base image's Java, only installs Maven
-  // 3.9.10 to match maven-wrapper.properties). There is no standalone maven
-  // feature. Node, Docker (host socket), kubectl/helm, Azure CLI and GitHub
-  // CLI are added as features so the Debian host itself stays clean
-  // (no global Java/Node/Maven/Go).
-  "image": "mcr.microsoft.com/devcontainers/java:25-bookworm",
+  // Java 25 comes from the base image; Maven 3.9.10 (matching
+  // maven-wrapper.properties) is baked in via the Dockerfile, because there
+  // is no standalone maven feature and the java feature would shadow
+  // JAVA_HOME with a dangling SDKMAN path. Node, Docker (host socket),
+  // kubectl/helm, Azure CLI and GitHub CLI are added as features so the
+  // Debian host itself stays clean (no global Java/Node/Maven/Go).
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "features": {
-    "ghcr.io/devcontainers/features/java:1": {
-      "version": "none",
-      "installMaven": true,
-      "mavenVersion": "3.9.10"
-    },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "24",
       "nvmVersion": "latest"
@@ -37,10 +34,7 @@
   // Docker bridge gateway, so pin the Vite proxy target instead of letting
   // vite.config.ts guess it from `ip route`.
   "containerEnv": {
-    "VITE_BACKEND_TARGET": "http://localhost:8080",
-    // Pin the base image's JDK: the java feature above exports an SDKMAN
-    // JAVA_HOME that would otherwise shadow it (its java install is "none").
-    "JAVA_HOME": "/usr/lib/jvm/msopenjdk-current"
+    "VITE_BACKEND_TARGET": "http://localhost:8080"
   },
   "postCreateCommand": "cd frontend && npm ci",
   "customizations": {
