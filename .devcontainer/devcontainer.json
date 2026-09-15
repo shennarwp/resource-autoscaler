@@ -41,7 +41,11 @@
   // Nothing is copied: same files, container-local reads. Requires the host
   // uid to match the container user (both 1000 on a default Debian install).
   "mounts": [
-    "type=bind,source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly"
+    "type=bind,source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly",
+    // OpenCode auth only (tokens stay on the host; sessions stay per-side).
+    // Requires ~/.local/share/opencode/auth.json to exist on the host
+    // (it does after `opencode auth login`), otherwise creation fails.
+    "type=bind,source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/vscode/.local/share/opencode/auth.json,readonly"
   ],
   "postCreateCommand": "cd frontend && npm ci",
   "customizations": {
