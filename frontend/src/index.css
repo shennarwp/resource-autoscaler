@@ -509,6 +509,54 @@ h4 {
   margin-top: 1.5rem;
 }
 
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--border) 50%, var(--bg-card-hover) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Error Boundary */
+.error-boundary {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.error-boundary h2 {
+  margin-bottom: 1rem;
+  color: var(--danger);
+}
+
+.error-boundary-message {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+/* Copy Button Feedback */
+.btn-copy-success {
+  background: var(--success) !important;
+  color: #fff !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .main-content {

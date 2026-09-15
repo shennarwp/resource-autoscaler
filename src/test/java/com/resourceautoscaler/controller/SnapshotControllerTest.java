@@ -1,5 +1,6 @@
 package com.resourceautoscaler.controller;
 
+import com.resourceautoscaler.service.MetricsCollectionService;
 import com.resourceautoscaler.service.MetricsSnapshotService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +20,8 @@ import static org.mockito.Mockito.when;
 class SnapshotControllerTest {
 
     private final MetricsSnapshotService snapshotService = mock(MetricsSnapshotService.class);
-    private final SnapshotController controller = new SnapshotController(snapshotService);
+    private final MetricsCollectionService metricsService = mock(MetricsCollectionService.class);
+    private final SnapshotController controller = new SnapshotController(snapshotService, metricsService);
 
     /** Verifies valid resource ID delegates to the snapshot service. */
     @Test

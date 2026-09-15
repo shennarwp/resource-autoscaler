@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { metricsApi } from '../services/api';
 import { useCostAnalysis } from '../hooks/useApi';
+import { SkeletonCard } from '../components/Skeleton';
 
 /** Shows monitored resources and the aggregate cost summary. */
 export default function DashboardPage() {
@@ -18,6 +19,12 @@ export default function DashboardPage() {
     <div className="page">
       <h1>Cloud Cost & FinOps Dashboard</h1>
       <p className="subtitle">Autonomous infrastructure cost optimization platform</p>
+
+      {costLoading && !summary && (
+        <div className="summary-cards">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      )}
 
       {summary && (
         <div className="summary-cards">

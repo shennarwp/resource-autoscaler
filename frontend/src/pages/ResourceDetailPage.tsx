@@ -6,6 +6,7 @@ import {
   AreaChart, Area, ReferenceLine
 } from 'recharts';
 import { format } from 'date-fns';
+import Skeleton, { SkeletonStats, SkeletonChart } from '../components/Skeleton';
 
 /** Supported chart windows, expressed in the API's day-based duration unit. */
 const TIME_RANGES = [
@@ -162,7 +163,17 @@ export default function ResourceDetailPage() {
     return computeLabelTimes(minT, maxT, effectiveLabelStepMs(maxT - minT, rangeStepMs));
   }, [axisDomain, labelEvery, chartData.length]);
 
-  if (metricsLoading && !metrics) return <div className="loading">Loading metrics...</div>;
+  if (metricsLoading && !metrics) {
+    return (
+      <div className="page">
+        <Skeleton width="160px" height="1rem" />
+        <Skeleton width="300px" height="1.75rem" />
+        <SkeletonStats />
+        <SkeletonChart />
+        <SkeletonChart />
+      </div>
+    );
+  }
   if (!metrics) return <div className="error">Resource not found</div>;
 
   return (
