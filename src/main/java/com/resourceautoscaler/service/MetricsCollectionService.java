@@ -2,6 +2,7 @@ package com.resourceautoscaler.service;
 
 import com.resourceautoscaler.model.*;
 import com.resourceautoscaler.repository.MetricsRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -110,5 +111,10 @@ public class MetricsCollectionService {
     /** Returns discovered capacity, if supported by the active repository. */
     public CurrentConfig getCurrentConfig(String resourceId) {
         return metricsRepository.getCurrentConfig(resourceId);
+    }
+
+    /** Evicts cached metrics for a specific resource after a snapshot is exported. */
+    @CacheEvict(value = "resourceMetrics", key = "#resourceId + '-' + #days")
+    public void evictMetricsCache(String resourceId, double days) {
     }
 }

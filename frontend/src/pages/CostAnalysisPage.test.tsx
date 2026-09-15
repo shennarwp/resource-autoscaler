@@ -20,7 +20,7 @@ describe('CostAnalysisPage', () => {
   it('renders loading, error, and empty states', () => {
     vi.mocked(useCostAnalysis).mockReturnValue({ analysis: null, loading: true, refreshing: false, error: null } as ReturnType<typeof useCostAnalysis>);
     renderPage();
-    expect(screen.getByText('Analyzing costs...')).toBeInTheDocument();
+    expect(document.querySelectorAll('.skeleton').length).toBeGreaterThan(0);
 
     vi.mocked(useCostAnalysis).mockReturnValue({ analysis: null, loading: false, refreshing: false, error: 'Failed' } as ReturnType<typeof useCostAnalysis>);
     renderPage();

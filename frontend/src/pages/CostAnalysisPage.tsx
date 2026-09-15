@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useCostAnalysis } from '../hooks/useApi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Skeleton, { SkeletonChart } from '../components/Skeleton';
 
 /** Shared chart tooltip styling for the dark cost-analysis theme. */
 const tooltipStyle = {
@@ -14,7 +15,16 @@ const tooltipStyle = {
 export default function CostAnalysisPage() {
   const { analysis, loading, error } = useCostAnalysis();
 
-  if (loading) return <div className="loading">Analyzing costs...</div>;
+  if (loading) {
+    return (
+      <div className="page">
+        <Skeleton width="160px" height="1rem" />
+        <Skeleton width="250px" height="1.75rem" />
+        <SkeletonChart />
+        <Skeleton width="100%" height="200px" />
+      </div>
+    );
+  }
   if (error) return <div className="error">{error}</div>;
   if (!analysis || !analysis.resources?.length) {
     return <div className="empty-state">No resources to analyze.</div>;

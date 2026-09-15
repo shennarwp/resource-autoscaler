@@ -1,5 +1,6 @@
 package com.resourceautoscaler.controller;
 
+import com.resourceautoscaler.service.MetricsCollectionService;
 import com.resourceautoscaler.service.MetricsSnapshotService;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +16,12 @@ public class SnapshotController {
             Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]*");
 
     private final MetricsSnapshotService snapshotService;
+    private final MetricsCollectionService metricsService;
 
-    /** Injects the service that downloads and persists raw metric snapshots. */
-    public SnapshotController(MetricsSnapshotService snapshotService) {
+    /** Injects the services for snapshot export and cache eviction. */
+    public SnapshotController(MetricsSnapshotService snapshotService, MetricsCollectionService metricsService) {
         this.snapshotService = snapshotService;
+        this.metricsService = metricsService;
     }
 
     /** Exports the inclusive {@code start}--{@code end} interval for replay. */
@@ -32,6 +35,7 @@ public class SnapshotController {
             throw new IllegalArgumentException("Invalid resource ID");
         }
         MetricsSnapshotService.SnapshotDownload download = snapshotService.export(resourceId, start, end);
+        metricsService.evictMetricsCache(resourceId, 30);
         return new SnapshotResponse(resourceId, download.file(), download.pointCount(), download.downloadedAt());
     }
 

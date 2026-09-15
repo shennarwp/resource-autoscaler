@@ -12,6 +12,7 @@ export default function GenerateCodePage() {
   const [noRecommendation, setNoRecommendation] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'keda' | 'terraform'>('keda');
+  const [copied, setCopied] = useState(false);
 
   const hasKeda = !!result?.kedaYaml;
   const hasTerraform = !!result?.terraformHcl;
@@ -92,10 +93,14 @@ export default function GenerateCodePage() {
                 <code>{activeCode}</code>
               </pre>
               <button
-                className="btn btn-copy"
-                onClick={() => navigator.clipboard.writeText(activeCode as string)}
+                className={`btn btn-copy ${copied ? 'btn-copy-success' : ''}`}
+                onClick={() => {
+                  navigator.clipboard.writeText(activeCode as string);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
               >
-                Copy to Clipboard
+                {copied ? 'Copied!' : 'Copy to Clipboard'}
               </button>
             </div>
           )}

@@ -44,7 +44,7 @@ describe('ResourceDetailPage', () => {
     vi.mocked(useRecommendations).mockReturnValue({ recommendations: [], loading: false, refreshing: false, error: null } as ReturnType<typeof useRecommendations>);
     vi.mocked(usePeakHoursConfig).mockReturnValue(null);
     renderPage();
-    expect(screen.getByText('Loading metrics...')).toBeInTheDocument();
+    expect(document.querySelectorAll('.skeleton').length).toBeGreaterThan(0);
 
     vi.mocked(useMetrics).mockReturnValue({ metrics: null, loading: false, refreshing: false, error: 'failed' } as ReturnType<typeof useMetrics>);
     renderPage();
