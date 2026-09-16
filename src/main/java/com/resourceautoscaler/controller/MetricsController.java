@@ -4,6 +4,10 @@ import com.resourceautoscaler.dto.MetricsResponse;
 import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.service.MetricsCollectionService;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Pattern;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +15,7 @@ import java.util.List;
 
 /** HTTP endpoints exposing monitored resources, samples, and peak schedules. */
 @RestController
+@Validated
 @RequestMapping("/api/v1/metrics")
 public class MetricsController {
 
@@ -33,8 +38,8 @@ public class MetricsController {
      */
     @GetMapping("/{resourceId}")
     public ResponseEntity<MetricsResponse> getResourceMetrics(
-            @PathVariable String resourceId,
-            @RequestParam(defaultValue = "30") double days
+            @PathVariable @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]*") String resourceId,
+            @RequestParam(defaultValue = "30") @DecimalMin("0.01") @DecimalMax("365") double days
     ) {
         ResourceMetrics metrics = metricsService.collectMetrics(resourceId, days);
 

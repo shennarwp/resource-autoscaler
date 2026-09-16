@@ -10,7 +10,8 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app">
-        <nav className="navbar">
+        <a className="skip-link" href="#main-content">Skip to main content</a>
+        <nav className="navbar" aria-label="Main">
           <div className="nav-brand">
             <Link to="/">Resource Autoscaler</Link>
           </div>
@@ -19,7 +20,7 @@ function App() {
             <Link to="/costs">Cost Analysis</Link>
           </div>
         </nav>
-        <main className="main-content">
+        <main id="main-content" className="main-content">
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<DashboardPage />} />

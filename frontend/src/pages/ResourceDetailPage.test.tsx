@@ -48,7 +48,7 @@ describe('ResourceDetailPage', () => {
 
     vi.mocked(useMetrics).mockReturnValue({ metrics: null, loading: false, refreshing: false, error: 'failed' } as ReturnType<typeof useMetrics>);
     renderPage();
-    expect(screen.getByText('Resource not found')).toBeInTheDocument();
+    expect(screen.getByText('Failed to load metrics: failed')).toBeInTheDocument();
   });
 
   it('renders metrics, fallback targets, recommendations, and changes time range', async () => {
@@ -79,7 +79,7 @@ describe('ResourceDetailPage', () => {
     expect(screen.getByText('Peak Target 55%')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Generate Scaling Code/ })).toHaveAttribute('href', '/resources/function-data-processor/generate');
 
-    await user.click(screen.getByRole('button', { name: '1w' }));
+    await user.click(screen.getByRole('button', { name: 'Show last 1 week' }));
     await waitFor(() => expect(useMetrics).toHaveBeenLastCalledWith('function-data-processor', 7));
   });
 });

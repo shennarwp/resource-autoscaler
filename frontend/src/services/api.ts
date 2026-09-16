@@ -14,22 +14,27 @@ const api = axios.create({
 /** Typed HTTP client for resource metrics endpoints. */
 export const metricsApi = {
   /** Lists resource identifiers exposed by the active backend profile. */
-  getMonitoredResources: async (): Promise<string[]> => {
-    const { data } = await api.get<string[]>('/metrics');
+  getMonitoredResources: async (signal?: AbortSignal): Promise<string[]> => {
+    const { data } = signal
+      ? await api.get<string[]>('/metrics', { signal })
+      : await api.get<string[]>('/metrics');
     return data;
   },
 
   /** Loads samples and aggregates for a resource over the requested number of days. */
-  getResourceMetrics: async (resourceId: string, days = 30): Promise<MetricsResponse> => {
+  getResourceMetrics: async (resourceId: string, days = 30, signal?: AbortSignal): Promise<MetricsResponse> => {
     const { data } = await api.get<MetricsResponse>(`/metrics/${resourceId}`, {
       params: { days },
+      ...(signal ? { signal } : {}),
     });
     return data;
   },
 
   /** Loads the UTC peak-hours schedule and thresholds for a resource. */
-  getPeakHoursConfig: async (resourceId: string): Promise<PeakHoursConfig> => {
-    const { data } = await api.get<PeakHoursConfig>(`/metrics/${resourceId}/peak-config`);
+  getPeakHoursConfig: async (resourceId: string, signal?: AbortSignal): Promise<PeakHoursConfig> => {
+    const { data } = signal
+      ? await api.get<PeakHoursConfig>(`/metrics/${resourceId}/peak-config`, { signal })
+      : await api.get<PeakHoursConfig>(`/metrics/${resourceId}/peak-config`);
     return data;
   },
 };
@@ -37,9 +42,10 @@ export const metricsApi = {
 /** Typed HTTP client for recommendation and generated-code endpoints. */
 export const recommendationsApi = {
   /** Retrieves recommendations for the selected analysis window. */
-  getRecommendations: async (resourceId: string, days = 30): Promise<ScalingRecommendation[]> => {
+  getRecommendations: async (resourceId: string, days = 30, signal?: AbortSignal): Promise<ScalingRecommendation[]> => {
     const { data } = await api.get<ScalingRecommendation[]>(`/recommendations/${resourceId}`, {
       params: { days },
+      ...(signal ? { signal } : {}),
     });
     return data;
   },
@@ -49,12 +55,15 @@ export const recommendationsApi = {
     resourceId: string,
     peakStart?: string,
     peakEnd?: string,
-    currentMonthlyCostUsd = 0
+    currentMonthlyCostUsd = 0,
+    signal?: AbortSignal
   ): Promise<RecommendationResponse> => {
     const body: Record<string, unknown> = { resourceId, currentMonthlyCostUsd };
     if (peakStart !== undefined) body.peakStart = peakStart;
     if (peakEnd !== undefined) body.peakEnd = peakEnd;
-    const { data } = await api.post<RecommendationResponse>('/recommendations/generate', body);
+    const { data } = signal
+      ? await api.post<RecommendationResponse>('/recommendations/generate', body, { signal })
+      : await api.post<RecommendationResponse>('/recommendations/generate', body);
     return data;
   },
 };
@@ -62,8 +71,10 @@ export const recommendationsApi = {
 /** Typed HTTP client for aggregate cost analysis. */
 export const costApi = {
   /** Loads current, optimized, and projected costs for all monitored resources. */
-  getCostAnalysis: async (): Promise<CostAnalysis> => {
-    const { data } = await api.get<CostAnalysis>('/costs/analysis');
+  getCostAnalysis: async (signal?: AbortSignal): Promise<CostAnalysis> => {
+    const { data } = signal
+      ? await api.get<CostAnalysis>('/costs/analysis', { signal })
+      : await api.get<CostAnalysis>('/costs/analysis');
     return data;
   },
 };

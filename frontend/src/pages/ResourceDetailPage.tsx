@@ -117,8 +117,10 @@ function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
   const [selectedDays, setSelectedDays] = useState(1);
-  const { metrics, loading: metricsLoading, refreshing: metricsRefreshing } = useMetrics(resourceId ?? null, selectedDays);
-  const { recommendations, refreshing: recommendationsRefreshing } = useRecommendations(resourceId ?? null, selectedDays);
+  const { metrics, loading: metricsLoading, refreshing: metricsRefreshing, error: metricsError } =
+    useMetrics(resourceId ?? null, selectedDays);
+  const { recommendations, refreshing: recommendationsRefreshing, error: recommendationsError } =
+    useRecommendations(resourceId ?? null, selectedDays);
   const peakConfig = usePeakHoursConfig(resourceId ?? null);
 
   const fallbackTargets = DEFAULT_TARGETS_BY_RESOURCE[resourceId ?? ''] ?? DEFAULT_TARGETS_BY_RESOURCE.default;
@@ -174,6 +176,7 @@ export default function ResourceDetailPage() {
       </div>
     );
   }
+  if (metricsError) return <div className="error" role="alert">Failed to load metrics: {metricsError}</div>;
   if (!metrics) return <div className="error">Resource not found</div>;
 
   return (
@@ -182,12 +185,14 @@ export default function ResourceDetailPage() {
       <h1>{metrics.resourceName}</h1>
       <p className="subtitle">{metrics.resourceId} &mdash; {metrics.resourceType}</p>
 
-      <div className="time-range-selector">
+      <div className="time-range-selector" role="group" aria-label="Select time range">
         {TIME_RANGES.map((range) => (
           <button
             key={range.days}
             className={`time-range-btn ${selectedDays === range.days ? 'active' : ''}`}
             onClick={() => setSelectedDays(range.days)}
+            aria-pressed={selectedDays === range.days}
+            aria-label={`Show last ${RANGE_LABELS[range.days] ?? range.label}`}
           >
             {range.label}
           </button>
@@ -221,53 +226,67 @@ export default function ResourceDetailPage() {
       </div>
 
       <div className="chart-section">
-        <h2>CPU Utilization ({rangeLabel})</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="t"
-              type="number"
-              scale="time"
-              domain={axisDomain}
-              ticks={labelTimes}
-              tickFormatter={formatAxisLabel}
-              tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
-            />
-            <YAxis domain={[0, 100]} />
-            <Tooltip content={<ChartTooltip />} />
-            <ReferenceLine y={peakTarget} stroke="var(--warning)" strokeDasharray="3 3" label={`Peak Target ${peakTarget}%`} />
-            <ReferenceLine y={offPeakTarget} stroke="var(--success)" strokeDasharray="3 3" label={`Off-Peak Target ${offPeakTarget}%`} />
-            <Area type="monotone" dataKey="cpu" stroke="var(--cpu-color)" fill="var(--cpu-color)" fillOpacity={0.3} />
-          </AreaChart>
-        </ResponsiveContainer>
+        <h2 id="cpu-chart-title">CPU Utilization ({rangeLabel})</h2>
+        <div className="chart-canvas" role="img" aria-labelledby="cpu-chart-title">
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="t"
+                type="number"
+                scale="time"
+                domain={axisDomain}
+                ticks={labelTimes}
+                tickFormatter={formatAxisLabel}
+                tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
+              />
+              <YAxis domain={[0, 100]} />
+              <Tooltip content={<ChartTooltip />} />
+              <ReferenceLine y={peakTarget} stroke="var(--warning)" strokeDasharray="3 3" label={`Peak Target ${peakTarget}%`} />
+              <ReferenceLine y={offPeakTarget} stroke="var(--success)" strokeDasharray="3 3" label={`Off-Peak Target ${offPeakTarget}%`} />
+              <Area type="monotone" dataKey="cpu" stroke="var(--cpu-color)" fill="var(--cpu-color)" fillOpacity={0.3} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="visually-hidden">
+          CPU utilization over {rangeLabel}: average {metrics.stats.avgCpuUtilization.toFixed(1)}%,
+          peak hours {metrics.stats.peakHourUtilization.toFixed(1)}%,
+          off-peak {metrics.stats.offPeakHourUtilization.toFixed(1)}%.
+        </p>
       </div>
 
       <div className="chart-section">
-        <h2>Memory Utilization ({rangeLabel})</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="t"
-              type="number"
-              scale="time"
-              domain={axisDomain}
-              ticks={labelTimes}
-              tickFormatter={formatAxisLabel}
-              tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
-            />
-            <YAxis domain={[0, 100]} />
-            <Tooltip content={<ChartTooltip />} />
-            <Legend />
-            <Line type="monotone" dataKey="memory" stroke="var(--memory-color)" name="Memory %" dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <h2 id="memory-chart-title">Memory Utilization ({rangeLabel})</h2>
+        <div className="chart-canvas" role="img" aria-labelledby="memory-chart-title">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="t"
+                type="number"
+                scale="time"
+                domain={axisDomain}
+                ticks={labelTimes}
+                tickFormatter={formatAxisLabel}
+                tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
+              />
+              <YAxis domain={[0, 100]} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend />
+              <Line type="monotone" dataKey="memory" stroke="var(--memory-color)" name="Memory %" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="visually-hidden">
+          Memory utilization over {rangeLabel}: average {metrics.stats.avgMemoryUtilization.toFixed(1)}%.
+        </p>
       </div>
 
       <div className="recommendations-section">
           <h2>Optimization Recommendations</h2>
-          {recommendations.length > 0 ? (
+          {recommendationsError ? (
+            <div className="error" role="alert">Failed to load recommendations: {recommendationsError}</div>
+          ) : recommendations.length > 0 ? (
             <>
               {recommendations.map((rec, i) => (
                 <div key={i} className="card recommendation-card">

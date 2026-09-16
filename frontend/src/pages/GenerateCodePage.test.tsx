@@ -40,8 +40,8 @@ describe('GenerateCodePage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('keda-code')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /Terraform/ }));
+    await user.click(screen.getByRole('tab', { name: /Terraform/ }));
     expect(screen.getByText('terraform-code')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Copy to Clipboard' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy code to clipboard' })).toBeInTheDocument();
   });
 });
