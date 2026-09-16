@@ -6,7 +6,7 @@ Items from the project analysis that have not been implemented yet.
 
 | # | Recommendation | Notes |
 |---|----------------|-------|
-| 15 | **CI/CD Pipeline** | GitHub Actions workflow added (`.github/workflows/ci.yml`) for frontend lint/build/test and backend Maven tests on PR/push. Container deploy still pending. |
+| 15 | **CI/CD Pipeline** | GitHub Actions workflow (`.github/workflows/test-and-build.yml`) for frontend lint/build/test and backend Maven tests on PR/push. Container deploy still pending. |
 | 19 | **Input Validation** | `@NotBlank`/`@Size`/`@Min`/`@Max`/`@PositiveOrZero` on `RecommendationRequest`; `@Validated` + `@Pattern` + `@DecimalMin`/`@DecimalMax` on `MetricsController`, `RecommendationsController`, and `SnapshotController`; `GlobalExceptionHandler` now maps `MethodArgumentNotValidException`, `ConstraintViolationException`, and `MethodArgumentTypeMismatchException` to 400 responses; snapshot `start` must precede `end`. |
 | 10 | **Frontend Error States & Request Cancellation** | `AbortController` added to all `useApi` hooks; `useCostAnalysis` gains `reload`; Dashboard shows resource-list loading/error states plus a Refresh button; `ResourceDetailPage` surfaces metrics and recommendation fetch errors; clipboard failures in `GenerateCodePage` are surfaced instead of silently swallowed. |
 | 13 | **Accessibility** | Skip-to-content link with `main` landmark; `:focus-visible` focus indicators; `visually-hidden` text for charts, tables, and live status; time-range buttons use `aria-pressed` + descriptive labels; generated-code tabs follow the `tablist`/`tab`/`tabpanel` pattern with arrow-key navigation and `aria-live` copy feedback; cost tables use caption + `scope`. |
