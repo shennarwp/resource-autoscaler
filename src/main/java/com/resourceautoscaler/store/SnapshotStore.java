@@ -39,7 +39,12 @@ public class SnapshotStore {
     /** Resolves the stable JSON path for a resource identifier. */
     public Path snapshotFile(String resourceId) {
         validateResourceId(resourceId);
-        return snapshotDir.resolve(resourceId + ".json");
+        String safeId = resourceId.replaceAll("[^A-Za-z0-9._-]", "_");
+        Path file = snapshotDir.resolve(safeId + ".json").normalize();
+        if (!file.startsWith(snapshotDir)) {
+            throw new IllegalArgumentException("Invalid resource ID: " + resourceId);
+        }
+        return file;
     }
 
     private static void validateResourceId(String resourceId) {

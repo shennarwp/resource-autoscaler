@@ -11,6 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Tests the snapshot store behavior and regression cases. */
@@ -47,5 +48,21 @@ class SnapshotStoreTest {
     void readMissingFileReturnsNull() {
         SnapshotStore store = new SnapshotStore(tempDir.toString());
         assertNull(store.read("nginx-busy"));
+    }
+
+    /** Verifies user-controlled resource IDs cannot escape the snapshot directory. */
+    @Test
+    void rejectsPathTraversalResourceIds() {
+        SnapshotStore store = new SnapshotStore(tempDir.toString());
+
+        for (String id : List.of("../../etc/passwd", "a/b", "a\\b", "..", ".", "", "a/b.json")) {
+            assertThrows(IllegalArgumentException.class, () -> store.snapshotFile(id));
+        }
+
+        for (String id : List.of("nginx-busy", "app_1.prod", "A.B-c")) {
+            Path file = store.snapshotFile(id);
+            assertTrue(file.normalize().startsWith(tempDir));
+            assertEquals(tempDir.resolve(id + ".json"), file);
+        }
     }
 }
