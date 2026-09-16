@@ -90,4 +90,15 @@ class SnapshotControllerTest {
         assertThrows(IllegalArgumentException.class,
             () -> controller.downloadSnapshot(resourceId, Instant.now(), Instant.now()));
     }
+
+    /** Verifies a snapshot window where start is not before end is rejected. */
+    @Test
+    void rejectedWhenStartIsNotBeforeEnd() {
+        Instant start = Instant.parse("2026-09-08T09:00:00Z");
+        Instant end = Instant.parse("2026-09-08T09:00:00Z");
+        assertThrows(IllegalArgumentException.class,
+            () -> controller.downloadSnapshot("nginx-busy", end, start));
+        assertThrows(IllegalArgumentException.class,
+            () -> controller.downloadSnapshot("nginx-busy", start, end));
+    }
 }

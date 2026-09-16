@@ -31,6 +31,7 @@ describe('CostAnalysisPage', () => {
       loading: false,
       refreshing: false,
       error: null,
+      reload: vi.fn(),
     });
     renderPage();
     expect(screen.getByText('No resources to analyze.')).toBeInTheDocument();

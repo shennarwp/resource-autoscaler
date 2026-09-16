@@ -13,4 +13,12 @@ describe('App routing shell', () => {
     expect(screen.getByRole('link', { name: 'Resource Autoscaler' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: 'Cost Analysis' })).toHaveAttribute('href', '/costs');
   });
+
+  it('exposes a skip-to-content link targeting the main landmark', () => {
+    render(<App />);
+    const skip = screen.getAllByRole('link', { name: 'Skip to main content' })[0];
+    expect(skip).toHaveAttribute('href', '#main-content');
+    expect(skip).toHaveClass('skip-link');
+    expect(document.querySelector('main#main-content')).not.toBeNull();
+  });
 });

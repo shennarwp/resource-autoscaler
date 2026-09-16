@@ -7,6 +7,11 @@ import com.resourceautoscaler.model.PeakHoursConfig;
 import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import com.resourceautoscaler.service.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Pattern;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +19,7 @@ import java.util.List;
 
 /** HTTP endpoints for recommendations and generated scaling manifests. */
 @RestController
+@Validated
 @RequestMapping("/api/v1/recommendations")
 public class RecommendationsController {
 
@@ -31,8 +37,8 @@ public class RecommendationsController {
     /** Analyzes the requested window and returns applicable scaling recommendations. */
     @GetMapping("/{resourceId}")
     public ResponseEntity<List<ScalingRecommendation>> getRecommendations(
-            @PathVariable String resourceId,
-            @RequestParam(defaultValue = "30") double days
+            @PathVariable @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]*") String resourceId,
+            @RequestParam(defaultValue = "30") @DecimalMin("0.01") @DecimalMax("365") double days
     ) {
         return ResponseEntity.ok(pipeline.recommend(resourceId, days).recommendations());
     }
@@ -43,7 +49,7 @@ public class RecommendationsController {
      */
     @PostMapping("/generate")
     public ResponseEntity<RecommendationResponse> generateCode(
-            @RequestBody RecommendationRequest request
+            @Valid @RequestBody RecommendationRequest request
     ) {
         PeakHoursConfig baseConfig = pipeline.basePeakHoursConfig(request.resourceId());
         PeakHoursConfig config = new PeakHoursConfig(
