@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -314,7 +315,10 @@ public class InsightsMetricsRepository implements MetricsRepository {
                             cpu, mem));
                 }
             }
-            rows.sort(java.util.Comparator.comparing(r -> r.timestamp()));
+            rows = rows.stream()
+                    .filter(Objects::nonNull)
+                    .sorted(java.util.Comparator.comparing(Row::timestamp))
+                    .toList();
             return rows;
         } catch (RuntimeException e) {
             log.error("Container Insights query failed for resource {}", query, e);
