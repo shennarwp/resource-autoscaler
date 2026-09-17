@@ -11,6 +11,15 @@ const api = axios.create({
   },
 });
 
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
+
+if (API_TOKEN) {
+  api.interceptors.request.use((config) => {
+    config.headers.Authorization = `Bearer ${API_TOKEN}`;
+    return config;
+  });
+}
+
 /** Typed HTTP client for resource metrics endpoints. */
 export const metricsApi = {
   /** Lists resource identifiers exposed by the active backend profile. */

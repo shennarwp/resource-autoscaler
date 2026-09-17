@@ -17,6 +17,12 @@ management:
       show-details: always
 
 app:
+  security:
+    enabled: true
+    jwt:
+      jwk-set-uri: ${JWT_JWK_SET_URI:}
+      issuer-uri: ${JWT_ISSUER_URI:}
+      secret: ${JWT_SECRET:}
   cache:
     eviction-minutes: 5
   snapshot:
