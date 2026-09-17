@@ -269,7 +269,8 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
     /** Reads a nullable numeric column without making missing series fatal. */
     private static Double column(LogsTableRow row, String column) {
-        return row.getColumnValue(column).map(c -> c == null ? null : c.getValueAsDouble()).orElse(null);
+        LogsTableCell cell = row.getColumnValue(column).orElse(null);
+        return cell == null ? null : cell.getValueAsDouble();
     }
 
     /** Internal normalized row produced by the Kusto result mapper. */
@@ -304,12 +305,12 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
             List<Row> rows = new ArrayList<>();
             for (LogsTableRow r : result.getTable().getRows()) {
-                String ts = r.getColumnValue("TimeGenerated")
-                        .map(c -> c == null ? null : c.getValueAsString()).orElse(null);
-                double cpu = r.getColumnValue("cpuPct")
-                        .map(c -> c == null ? null : c.getValueAsDouble()).orElse(0.0);
-                double mem = r.getColumnValue("memPct")
-                        .map(c -> c == null ? null : c.getValueAsDouble()).orElse(0.0);
+                LogsTableCell tsCell = r.getColumnValue("TimeGenerated").orElse(null);
+                String ts = tsCell == null ? null : tsCell.getValueAsString();
+                LogsTableCell cpuCell = r.getColumnValue("cpuPct").orElse(null);
+                double cpu = cpuCell == null ? 0.0 : cpuCell.getValueAsDouble();
+                LogsTableCell memCell = r.getColumnValue("memPct").orElse(null);
+                double mem = memCell == null ? 0.0 : memCell.getValueAsDouble();
                 if (ts != null) {
                     rows.add(new Row(OffsetDateTime.parse(ts).toInstant(),
                             cpu, mem));
