@@ -1,3 +1,7 @@
+app:
+  security:
+    enabled: false
+
 logging:
   level:
     com.resourceautoscaler.repository.MockMetricsRepository: DEBUG

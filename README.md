@@ -84,6 +84,37 @@ The application follows a repository-service-controller flow:
 
 The generated configuration is an implementation starting point: review resource names, namespaces, Azure resource references, capacity limits, target thresholds, and schedule assumptions before applying it to production.
 
+## Authentication
+
+The `azure` and `insights` profiles require a JWT bearer token on every `/api/**`
+request. `mock` (the default local profile) disables authentication via
+`app.security.enabled=false`.
+
+Authorization is role-based:
+
+| Endpoint | Required authority |
+|----------|--------------------|
+| `GET /api/v1/**` | `ROLE_VIEWER`, `ROLE_OPERATOR`, `ROLE_ADMIN`, or `SCOPE_read` |
+| `POST /api/v1/**` | `ROLE_OPERATOR`, `ROLE_ADMIN`, or `SCOPE_write` |
+
+Public paths: `/actuator/health/**`, `/actuator/info`, `/v3/api-docs/**`, `/swagger-ui/**`.
+
+Configure exactly one JWT decoder source:
+
+```bash
+# OIDC issuer (e.g. Microsoft Entra ID) — recommended
+export JWT_ISSUER_URI=https://login.microsoftonline.com/{tenant-id}/v2.0
+
+# Or a JWK set URL
+export JWT_JWK_SET_URI=https://example.com/.well-known/jwks.json
+
+# Or an HS256 shared secret of at least 32 bytes (dev/test only)
+export JWT_SECRET=$(openssl rand -base64 32)
+```
+
+The frontend attaches a token from `VITE_API_TOKEN` as an `Authorization: Bearer`
+header when set.
+
 ## Profiles
 
 | Profile | Description |
