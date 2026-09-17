@@ -1,9 +1,6 @@
 package com.resourceautoscaler.service;
 
 import com.resourceautoscaler.model.CostAnalysis;
-import com.resourceautoscaler.model.CurrentConfig;
-import com.resourceautoscaler.model.PeakHoursConfig;
-import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import org.springframework.stereotype.Service;
 

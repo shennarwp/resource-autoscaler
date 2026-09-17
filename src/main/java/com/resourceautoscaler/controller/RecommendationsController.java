@@ -2,9 +2,7 @@ package com.resourceautoscaler.controller;
 
 import com.resourceautoscaler.dto.RecommendationRequest;
 import com.resourceautoscaler.dto.RecommendationResponse;
-import com.resourceautoscaler.model.CurrentConfig;
 import com.resourceautoscaler.model.PeakHoursConfig;
-import com.resourceautoscaler.model.ResourceMetrics;
 import com.resourceautoscaler.model.ScalingRecommendation;
 import com.resourceautoscaler.service.*;
 import jakarta.validation.Valid;
