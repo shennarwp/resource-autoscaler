@@ -268,7 +268,7 @@ public class InsightsMetricsRepository implements MetricsRepository {
 
     /** Reads a nullable numeric column without making missing series fatal. */
     private static Double column(LogsTableRow row, String column) {
-        return row.getColumnValue(column).map(LogsTableCell::getValueAsDouble).orElse(null);
+        return row.getColumnValue(column).map(c -> c == null ? null : c.getValueAsDouble()).orElse(null);
     }
 
     /** Internal normalized row produced by the Kusto result mapper. */
@@ -304,17 +304,17 @@ public class InsightsMetricsRepository implements MetricsRepository {
             List<Row> rows = new ArrayList<>();
             for (LogsTableRow r : result.getTable().getRows()) {
                 String ts = r.getColumnValue("TimeGenerated")
-                        .map(LogsTableCell::getValueAsString).orElse(null);
+                        .map(c -> c == null ? null : c.getValueAsString()).orElse(null);
                 double cpu = r.getColumnValue("cpuPct")
-                        .map(LogsTableCell::getValueAsDouble).orElse(0.0);
+                        .map(c -> c == null ? null : c.getValueAsDouble()).orElse(0.0);
                 double mem = r.getColumnValue("memPct")
-                        .map(LogsTableCell::getValueAsDouble).orElse(0.0);
+                        .map(c -> c == null ? null : c.getValueAsDouble()).orElse(0.0);
                 if (ts != null) {
                     rows.add(new Row(OffsetDateTime.parse(ts).toInstant(),
                             cpu, mem));
                 }
             }
-            rows.sort(java.util.Comparator.comparing(Row::timestamp));
+            rows.sort(java.util.Comparator.comparing(r -> r.timestamp()));
             return rows;
         } catch (RuntimeException e) {
             log.error("Container Insights query failed for resource {}", query, e);

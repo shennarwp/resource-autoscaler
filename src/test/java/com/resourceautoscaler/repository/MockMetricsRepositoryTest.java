@@ -61,7 +61,7 @@ class MockMetricsRepositoryTest {
         // 3 copies of the 3-sample snapshot fall inside the window
         assertEquals(9, points.size());
         assertTrue(points.get(0).timestamp().isBefore(points.get(1).timestamp()));
-        assertEquals(9, points.stream().map(MetricPoint::timestamp).distinct().count());
+        assertEquals(9, points.stream().map(p -> p.timestamp()).distinct().count());
         assertEquals(10.0, points.get(0).cpuUtilization(), 0.001);
         assertEquals(base, points.get(points.size() - 3).timestamp());
     }
@@ -139,7 +139,7 @@ class MockMetricsRepositoryTest {
                 .toList();
 
         List<MetricPoint> served = repo.getAllMetrics("nginx-busy", Duration.ofHours(3));
-        assertEquals(expected, served.stream().map(MetricPoint::timestamp).toList());
+        assertEquals(expected, served.stream().map(p -> p.timestamp()).toList());
     }
 
     /** Verifies weekend tiles render idle CPU and no requests. */

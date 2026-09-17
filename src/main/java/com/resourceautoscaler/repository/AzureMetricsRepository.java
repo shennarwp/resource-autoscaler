@@ -28,6 +28,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.DoubleUnaryOperator;
 
 /** Reads Azure Monitor metrics for Azure resource profiles. */
@@ -144,6 +145,7 @@ public class AzureMetricsRepository implements MetricsRepository {
     @Override
     public List<String> getMonitoredResourceIds() {
         return java.util.Arrays.stream(monitoredResources.split(","))
+                .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(id -> !id.isEmpty())
                 .peek(AzureMetricsRepository::validateResourceId)
