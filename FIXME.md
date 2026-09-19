@@ -10,7 +10,6 @@ Items from the project analysis that have not been implemented yet.
 | 19 | **Input Validation** | `@NotBlank`/`@Size`/`@Min`/`@Max`/`@PositiveOrZero` on `RecommendationRequest`; `@Validated` + `@Pattern` + `@DecimalMin`/`@DecimalMax` on `MetricsController`, `RecommendationsController`, and `SnapshotController`; `GlobalExceptionHandler` now maps `MethodArgumentNotValidException`, `ConstraintViolationException`, and `MethodArgumentTypeMismatchException` to 400 responses; snapshot `start` must precede `end`. |
 | 10 | **Frontend Error States & Request Cancellation** | `AbortController` added to all `useApi` hooks; `useCostAnalysis` gains `reload`; Dashboard shows resource-list loading/error states plus a Refresh button; `ResourceDetailPage` surfaces metrics and recommendation fetch errors; clipboard failures in `GenerateCodePage` are surfaced instead of silently swallowed. |
 | 13 | **Accessibility** | Skip-to-content link with `main` landmark; `:focus-visible` focus indicators; `visually-hidden` text for charts, tables, and live status; time-range buttons use `aria-pressed` + descriptive labels; generated-code tabs follow the `tablist`/`tab`/`tabpanel` pattern with arrow-key navigation and `aria-live` copy feedback; cost tables use caption + `scope`. |
-| 5 | **Authentication & RBAC** | Spring Security OAuth2 resource server validates JWT bearer tokens from an OIDC issuer, JWK set, or HS256 secret (`app.security.jwt.*`); writes require `ROLE_OPERATOR`/`ROLE_ADMIN`/`SCOPE_write` and reads require `ROLE_VIEWER`+; public paths limited to actuator health/info and OpenAPI/Swagger; `mock` profile keeps auth disabled for local development. |
 
 ## High Impact
 
@@ -20,6 +19,7 @@ Items from the project analysis that have not been implemented yet.
 | 2 | **Recommendation History & Tracking** | Add a database (PostgreSQL/H2) to persist recommendation history, track which ones were applied, and measure actual savings over time. | High |
 | 3 | **Real-time Streaming via SSE** | Add `text/event-stream` endpoints for live metric updates instead of polling. | Medium |
 | 4 | **Rightsizing Logic** | The `RIGHTSIZING` and `SHUTDOWN_OFF_HOURS` recommendation types are defined but never generated. Implement actual rightsizing analysis (e.g., suggest reducing CPU requests when consistently underutilized). | Medium |
+| 5 | **Authentication & RBAC** | Add Spring Security with JWT or Azure AD B2C. The API is currently wide open. | High |
 
 ## Quality & Reliability
 
