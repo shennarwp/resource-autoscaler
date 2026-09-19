@@ -54,6 +54,9 @@ public class AzureMetricsRepository implements MetricsRepository {
     @Value("${app.azure.resources:autoscaler-busy,autoscaler-idle}")
     private String monitoredResources;
 
+    @Value("${app.azure.memory-limit-bytes:0}")
+    private double memoryLimitBytes;
+
     private MetricsQueryClient metricsClient;
 
     /** Creates the Azure Monitor client from the configured service principal. */
@@ -83,7 +86,9 @@ public class AzureMetricsRepository implements MetricsRepository {
      */
     @Override
     public List<MetricPoint> getMemoryUtilization(String resourceId, Duration timeRange) {
-        return List.of();
+        if (memoryLimitBytes <= 0) return List.of();
+        return queryMetric(resourceId, timeRange, "MemoryWorkingSet", value ->
+                Math.clamp(value / memoryLimitBytes * 100.0, 0.0, 100.0));
     }
 
     /** Loads Azure request totals for the requested window. */
@@ -193,12 +198,7 @@ public class AzureMetricsRepository implements MetricsRepository {
                 .setAggregations(List.of(AggregationType.TOTAL))
                 .setTimeInterval(timeInterval);
 
-        MetricsQueryResult result = metricsClient.queryResourceWithResponse(
-                resourceIdFull,
-                List.of(metricName),
-                options,
-                Context.NONE
-        ).getValue();
+        MetricsQueryResult result = queryWithRetry(resourceIdFull, metricName, options);
 
         List<MetricPoint> points = new ArrayList<>();
         if (result != null) {
@@ -219,6 +219,28 @@ public class AzureMetricsRepository implements MetricsRepository {
             }
         }
         return points;
+    }
+
+    /** Retries transient Azure Monitor failures with bounded exponential backoff. */
+    private MetricsQueryResult queryWithRetry(String resourceId, String metricName,
+            MetricsQueryOptions options) {
+        RuntimeException last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                return metricsClient.queryResourceWithResponse(
+                        resourceId, List.of(metricName), options, Context.NONE).getValue();
+            } catch (RuntimeException ex) {
+                last = ex;
+                if (attempt == 2) break;
+                try {
+                    Thread.sleep(100L * (1L << attempt));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Azure Monitor query interrupted", interrupted);
+                }
+            }
+        }
+        throw new IllegalStateException("Azure Monitor query failed after retries", last);
     }
 
     /** Builds the fully qualified Azure resource ID from configured subscription data. */

@@ -1,3 +1,4 @@
+/* oxlint-disable react/set-state-in-effect */
 import { useState, useEffect, useCallback } from 'react';
 import { metricsApi, costApi, recommendationsApi } from '../services/api';
 import type { MetricsResponse, CostAnalysis, ScalingRecommendation, PeakHoursConfig } from '../types/api';

@@ -35,6 +35,9 @@ app:
     analysis-period-days: 30
   cors:
     allowed-origins: "http://localhost:5173,http://localhost:3000"
+  rate-limit:
+    requests-per-window: 120
+    window-seconds: 60
 
 springdoc:
   api-docs:

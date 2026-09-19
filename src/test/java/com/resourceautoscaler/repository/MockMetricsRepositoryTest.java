@@ -207,7 +207,7 @@ class MockMetricsRepositoryTest {
     /** Verifies mock replays downloaded snapshot and its current config. */
     @Test
     void mockReplaysDownloadedSnapshotAndItsCurrentConfig() throws Exception {
-        Instant base = Instant.now().minusSeconds(90);
+        Instant base = Instant.parse("2026-09-08T10:00:00Z");
         CurrentConfig config = new CurrentConfig("nginx-busy", 3, 3, 0.025, 0.150, 8.0 / 1024.0, 32.0 / 1024.0, 1, 4.0, true);
         SnapshotStore store = new SnapshotStore(tempDir.toString());
         store.write(new MetricsSnapshot(

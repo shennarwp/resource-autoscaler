@@ -5,6 +5,7 @@ app:
     client-id: ${AZURE_CLIENT_ID}
     client-secret: ${AZURE_CLIENT_SECRET}
     resource-group: ${AZURE_RESOURCE_GROUP:autoscaler-demo}
+    memory-limit-bytes: ${AZURE_MEMORY_LIMIT_BYTES:0}
 
 logging:
   level:

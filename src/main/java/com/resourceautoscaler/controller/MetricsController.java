@@ -54,7 +54,10 @@ public class MetricsController {
                 stats.maxCpuUtilization(),
                 stats.avgMemoryUtilization(),
                 stats.peakHourUtilization(),
-                stats.offPeakHourUtilization()
+                stats.offPeakHourUtilization(),
+                stats.p50CpuUtilization(),
+                stats.p95CpuUtilization(),
+                stats.p99CpuUtilization()
             )
         ));
     }

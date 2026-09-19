@@ -62,6 +62,28 @@ public class AnalysisService {
             ));
         }
 
+        if (recommendations.isEmpty() && currentConfig != null && currentConfig.available()
+                && currentConfig.cpuRequestCores() > 0
+                && stats.p95CpuUtilization() < 50.0
+                && stats.avgMemoryUtilization() < 70.0) {
+            double savingsPercent = 10.0;
+            double estimatedSavings = currentMonthlyCostUsd * savingsPercent / 100.0;
+            String resourceType = metrics.resourceType();
+            recommendations.add(new ScalingRecommendation(
+                    metrics.resourceId(), metrics.resourceName(), mapResourceType(resourceType),
+                    ScalingRecommendation.RecommendationType.RIGHTSIZING,
+                    describeCurrentConfig(resourceType, currentConfig),
+                    describeRightsizedConfig(resourceType, currentConfig),
+                    "Continuous utilization analysis", "Continuous utilization analysis",
+                    config.peakStart(), config.peakEnd(), estimatedSavings, savingsPercent,
+                    Math.min(0.95, calculateConfidenceScore(stats, config) + 0.05), Instant.now(),
+                    String.format(java.util.Locale.ROOT,
+                            "Why this recommendation: p50 CPU %.1f%%, p95 CPU %.1f%%, p99 CPU %.1f%%, and average memory %.1f%% remain below safe capacity thresholds. Reducing the CPU request preserves headroom while lowering baseline cost.",
+                            stats.p50CpuUtilization(), stats.p95CpuUtilization(), stats.p99CpuUtilization(),
+                            stats.avgMemoryUtilization())
+            ));
+        }
+
         return recommendations;
     }
 
@@ -216,6 +238,15 @@ public class AnalysisService {
         return 3;
     }
 
+    /** Describes a conservative CPU request reduction with a 30% safety margin. */
+    private String describeRightsizedConfig(String resourceType, CurrentConfig currentConfig) {
+        double requested = currentConfig.cpuRequestCores();
+        double recommended = Math.max(0.05, requested * 0.70);
+        return String.format(java.util.Locale.ROOT,
+                "RIGHTSIZING: reduce CPU request from %.2f cores to %.2f cores; retain current memory limits and replicas",
+                requested, recommended);
+    }
+
     /** Explains the observed utilization pattern and estimated savings percentage. */
     private String generateRationale(
             ResourceMetrics.AggregatedStats stats,
@@ -228,12 +259,15 @@ public class AnalysisService {
         return String.format(java.util.Locale.ROOT,
             "Observed utilization pattern: peak hours average %.1f%% CPU while off-peak hours average %.1f%% CPU. " +
             "Based on the configured %s-%s UTC schedule, about %.0f%% of the week is outside the peak window. " +
-            "Using the current observed utilization gap and target thresholds, the estimated savings are %.1f%% of monthly spend.",
+            "CPU distribution is p50 %.1f%%, p95 %.1f%%, and p99 %.1f%%. Using the observed utilization gap and target thresholds, the estimated savings are %.1f%% of monthly spend.",
             stats.peakHourUtilization(),
             stats.offPeakHourUtilization(),
             config.peakStart(),
             config.peakEnd(),
             offPeakIdleFraction,
+            stats.p50CpuUtilization(),
+            stats.p95CpuUtilization(),
+            stats.p99CpuUtilization(),
             roundedSavings
         );
     }

@@ -1,44 +1,41 @@
 # FIXME — Remaining Recommendations
 
-Items from the project analysis that have not been implemented yet.
+This list contains work that is still outstanding after the latest project review. Completed recommendations have been removed.
 
-## Completed
+## High impact
 
-| # | Recommendation | Notes |
-|---|----------------|-------|
-| 15 | **CI/CD Pipeline** | GitHub Actions workflow (`.github/workflows/test-and-build.yml`) for frontend lint/build/test and backend Maven tests on PR/push. Container deploy still pending. |
-| 19 | **Input Validation** | `@NotBlank`/`@Size`/`@Min`/`@Max`/`@PositiveOrZero` on `RecommendationRequest`; `@Validated` + `@Pattern` + `@DecimalMin`/`@DecimalMax` on `MetricsController`, `RecommendationsController`, and `SnapshotController`; `GlobalExceptionHandler` now maps `MethodArgumentNotValidException`, `ConstraintViolationException`, and `MethodArgumentTypeMismatchException` to 400 responses; snapshot `start` must precede `end`. |
-| 10 | **Frontend Error States & Request Cancellation** | `AbortController` added to all `useApi` hooks; `useCostAnalysis` gains `reload`; Dashboard shows resource-list loading/error states plus a Refresh button; `ResourceDetailPage` surfaces metrics and recommendation fetch errors; clipboard failures in `GenerateCodePage` are surfaced instead of silently swallowed. |
-| 13 | **Accessibility** | Skip-to-content link with `main` landmark; `:focus-visible` focus indicators; `visually-hidden` text for charts, tables, and live status; time-range buttons use `aria-pressed` + descriptive labels; generated-code tabs follow the `tablist`/`tab`/`tabpanel` pattern with arrow-key navigation and `aria-live` copy feedback; cost tables use caption + `scope`. |
+| Recommendation | Description | Effort |
+|---|---|---|
+| Azure Retail Pricing | Replace fallback estimates with SKU-, region-, currency-, and billing-aware Azure Retail Prices API data. | High |
+| Recommendation history | Persist generated, accepted, rejected, applied, and rolled-back recommendations and compare projected vs actual savings. | High |
+| Shutdown/off-hours automation | Generate safe `SHUTDOWN_OFF_HOURS` recommendations with minimum availability, exception calendars, and rollback controls. | Medium |
+| Live metrics | Add SSE streaming after the polling path is stable and authenticated. | Medium |
 
-## High Impact
+## Reliability and security
 
-| # | Recommendation | Description | Effort |
-|---|----------------|-------------|--------|
-| 1 | **Azure Pricing API Integration** | Replace hardcoded cost estimates ($40/core/month) with the [Azure Retail Prices API](https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-price) for accurate, SKU-level pricing. | High |
-| 2 | **Recommendation History & Tracking** | Add a database (PostgreSQL/H2) to persist recommendation history, track which ones were applied, and measure actual savings over time. | High |
-| 3 | **Real-time Streaming via SSE** | Add `text/event-stream` endpoints for live metric updates instead of polling. | Medium |
-| 4 | **Rightsizing Logic** | The `RIGHTSIZING` and `SHUTDOWN_OFF_HOURS` recommendation types are defined but never generated. Implement actual rightsizing analysis (e.g., suggest reducing CPU requests when consistently underutilized). | Medium |
-| 5 | **Authentication & RBAC** | Add Spring Security with JWT or Azure AD B2C. The API is currently wide open. | High |
+| Recommendation | Description | Effort |
+|---|---|---|
+| Distributed rate limiting | Replace the in-process limiter with Redis/API Gateway enforcement for multi-instance deployments. | Medium |
+| Azure resilience | Move retry/backoff into a reusable resilience policy with request timeouts, 429-aware delays, circuit breaking, and metrics. | Medium |
+| End-to-end cloud tests | Add a provider contract test suite using recorded Azure responses or an Azure test subscription. | Medium |
+| Durable snapshots | Store snapshots in Blob Storage or a database and write files atomically with retention and checksum validation. | Medium |
+| Deployment manifests | Add Helm/Kustomize manifests, secret references, probes, resource limits, and network policies for AKS. | High |
+| Observability | Add structured JSON logs, OpenTelemetry traces, Azure query metrics, cache metrics, and recommendation decision metrics. | High |
 
-## Quality & Reliability
+## Product and UX
 
-| # | Recommendation | Description | Effort |
-|---|----------------|-------------|--------|
-| 7 | **API Retry/Backoff** | Add Spring Retry with exponential backoff for Azure Monitor API calls (`azure-monitor-query`). | Medium |
-| 9 | **Integration Tests** | Boot the full Spring context with `@SpringBootTest` and test the end-to-end controller -> service -> repository flow. | Medium |
-| 20 | **Duplicated Dashboard API Logic** | `DashboardPage` calls `metricsApi.getMonitoredResources()` directly via `useEffect` instead of using a shared hook like the other data fetches. | Low |
+| Recommendation | Description | Effort |
+|---|---|---|
+| Cost trends | Persist monthly cost history and show month-over-month and realized-savings charts. | Medium |
+| PWA/offline mode | Support installability and cached read-only dashboards for field engineers. | Medium |
+| Approval workflow | Require review and explicit approval before generated scaling configuration can be applied. | Medium |
+| Multi-region/time-zone schedules | Store schedule time zones per resource and account for holidays and exception calendars. | Medium |
+| Pricing confidence | Show the pricing source, timestamp, fallback status, and confidence beside every savings estimate. | Low |
 
-## UX Improvements
+## Remaining engineering cleanup
 
-| # | Recommendation | Description | Effort |
-|---|----------------|-------------|--------|
-| 14 | **Cost Trend Charts** | Show month-over-month cost trends instead of just current snapshots. | Medium |
-| 18 | **PWA / Service Worker** | Enable offline support and installability for field engineers. | Medium |
-
-## DevOps & Ops
-
-| # | Recommendation | Description | Effort |
-|---|----------------|-------------|--------|
-| 16 | **Kubernetes Deployment** | Create Helm charts or Kustomize manifests for deploying the autoscaler itself to AKS. | High |
-| 17 | **Structured Logging + Observability** | Add OpenTelemetry for distributed tracing and structured JSON logs. | High |
+| Recommendation | Description | Effort |
+|---|---|---|
+| Shared frontend data layer | Add a shared query/cache hook for monitored resources and consistent refresh behavior across pages. | Low |
+| API error documentation | Extend OpenAPI error responses to every operation and publish example 400/401/403/429/500 payloads. | Low |
+| Frontend test coverage | Add tests for recommendation filters, lazy route loading, percentile evidence, and rate-limit/error states. | Low |

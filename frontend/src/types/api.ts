@@ -15,6 +15,9 @@ export interface AggregatedStats {
   avgMemoryUtilization: number;
   peakHourUtilization: number;
   offPeakHourUtilization: number;
+  p50CpuUtilization?: number;
+  p95CpuUtilization?: number;
+  p99CpuUtilization?: number;
 }
 
 /** Resource metrics response, including samples and precomputed aggregates. */
@@ -53,6 +56,8 @@ export interface ScalingRecommendation {
   confidenceScore: number;
   generatedAt: string;
   rationale: string;
+  risk?: 'LOW' | 'MEDIUM' | 'HIGH';
+  utilizationEvidence?: string;
 }
 
 /** Generated deployment code accompanying a scaling recommendation. */
