@@ -20,7 +20,19 @@ public record ScalingRecommendation(
     double confidenceScore,
     Instant generatedAt,
     String rationale
-) {
+    ) {
+    /** Risk classification used to prioritize and filter recommendations. */
+    public String risk() {
+        if (confidenceScore < 0.55 || estimatedSavingsPercentage > 35) return "HIGH";
+        if (confidenceScore < 0.75 || estimatedSavingsPercentage > 15) return "MEDIUM";
+        return "LOW";
+    }
+
+    /** Stable evidence fields for UI explanations and audit logs. */
+    public String utilizationEvidence() {
+        return rationale;
+    }
+
     /** Resource families supported by generated configuration. */
     public enum ResourceType {
         AZURE_VM,

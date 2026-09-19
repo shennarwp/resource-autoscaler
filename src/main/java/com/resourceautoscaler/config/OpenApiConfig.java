@@ -1,9 +1,12 @@
 package com.resourceautoscaler.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.media.Schema;
+import com.resourceautoscaler.dto.ErrorResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,6 +29,15 @@ public class OpenApiConfig {
                                 .url("https://github.com/shennarwp/resource-autoscaler"))
                         .license(new License()
                                 .name("MIT")
-                                .url("https://opensource.org/licenses/MIT")));
+                                .url("https://opensource.org/licenses/MIT")))
+                .components(new Components()
+                        .addSchemas("ErrorResponse", new Schema<ErrorResponse>()
+                                .type("object")
+                                .description("Consistent API error response")
+                                .addProperty("status", new Schema<Integer>().example(400))
+                                .addProperty("error", new Schema<String>().example("Bad Request"))
+                                .addProperty("message", new Schema<String>().example("Invalid request"))
+                                .addProperty("timestamp", new Schema<String>().format("date-time")))
+                        );
     }
 }

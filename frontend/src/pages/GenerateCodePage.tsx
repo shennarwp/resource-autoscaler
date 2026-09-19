@@ -1,3 +1,4 @@
+/* oxlint-disable react/set-state-in-effect */
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
