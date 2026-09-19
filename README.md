@@ -112,34 +112,8 @@ export JWT_JWK_SET_URI=https://example.com/.well-known/jwks.json
 export JWT_SECRET=$(openssl rand -base64 32)
 ```
 
-A repo-root `.env` file is not loaded automatically. Export it in each shell
-before starting the backend:
-
-```bash
-set -a; source .env; set +a
-```
-
-To exercise JWT authentication with the mock profile, override its disabled
-default:
-
-```bash
-./mvnw spring-boot:run \
-  -Dspring-boot.run.profiles=mock \
-  -Dspring-boot.run.arguments="--app.security.enabled=true --app.security.jwt.secret=$JWT_SECRET"
-```
-
 The frontend attaches a token from `VITE_API_TOKEN` as an `Authorization: Bearer`
-header when set. Use a signed JWT with the appropriate role or scope—not
-`JWT_SECRET`. Vite only reads frontend-visible variables, so set either:
-
-```bash
-# frontend/.env.local
-VITE_API_TOKEN=<signed-jwt>
-```
-
-or export `VITE_API_TOKEN` before starting the dev server. Restart
-`npm run dev` after changing it; an exported shell value takes precedence over
-frontend env files.
+header when set.
 
 ## Profiles
 
