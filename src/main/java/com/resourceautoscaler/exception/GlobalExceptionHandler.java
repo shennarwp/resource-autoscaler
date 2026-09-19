@@ -71,10 +71,7 @@ public class GlobalExceptionHandler {
 
     private static ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(Map.of(
-                "status", status.value(),
-                "error", status.getReasonPhrase(),
-                "message", message,
-                "timestamp", Instant.now().toString()
-        ));
+                "status", status.value(), "error", status.getReasonPhrase(),
+                "message", message, "timestamp", Instant.now().toString()));
     }
 }

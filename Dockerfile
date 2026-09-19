@@ -19,7 +19,13 @@ RUN ./mvnw clean package -DskipTests
 # Stage 3: Backend runtime
 FROM eclipse-temurin:25-jre AS backend
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --create-home appuser
 COPY --from=backend-build /app/target/*.jar app.jar
+RUN chown -R appuser:appuser /app
+USER appuser
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
 

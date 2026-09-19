@@ -76,7 +76,7 @@ public class CostOptimizationService {
                 totalOptimized,
                 totalCurrent - totalOptimized,
                 totalCurrent > 0 ? ((totalCurrent - totalOptimized) / totalCurrent) * 100 : 0,
-                resources.size(),
+                breakdowns.size(),
                 optimizationsCount,
                 String.format("%.2f", (totalCurrent - totalOptimized) * 12)
             )

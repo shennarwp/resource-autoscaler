@@ -117,10 +117,20 @@ function effectiveLabelStepMs(spanMs: number, rangeStepMs: number): number {
 export default function ResourceDetailPage() {
   const { resourceId } = useParams<{ resourceId: string }>();
   const [selectedDays, setSelectedDays] = useState(1);
+  const [riskFilter, setRiskFilter] = useState<'ALL' | 'LOW' | 'MEDIUM' | 'HIGH'>('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [minConfidence, setMinConfidence] = useState(0);
+  const [minSavings, setMinSavings] = useState(0);
   const { metrics, loading: metricsLoading, refreshing: metricsRefreshing, error: metricsError } =
     useMetrics(resourceId ?? null, selectedDays);
   const { recommendations, refreshing: recommendationsRefreshing, error: recommendationsError } =
     useRecommendations(resourceId ?? null, selectedDays);
+  const filteredRecommendations = recommendations.filter((rec) =>
+    (riskFilter === 'ALL' || rec.risk === riskFilter)
+    && (typeFilter === 'ALL' || rec.resourceType === typeFilter)
+    && rec.confidenceScore >= minConfidence
+    && rec.estimatedMonthlySavingsUsd >= minSavings
+  );
   const peakConfig = usePeakHoursConfig(resourceId ?? null);
 
   const fallbackTargets = DEFAULT_TARGETS_BY_RESOURCE[resourceId ?? ''] ?? DEFAULT_TARGETS_BY_RESOURCE.default;
@@ -284,11 +294,30 @@ export default function ResourceDetailPage() {
 
       <div className="recommendations-section">
           <h2>Optimization Recommendations</h2>
+          <div className="recommendation-filters" role="group" aria-label="Filter recommendations">
+            <label>Risk
+              <select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value as typeof riskFilter)}>
+                <option value="ALL">All</option><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option>
+              </select>
+            </label>
+            <label>Type
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                <option value="ALL">All</option>
+                {[...new Set(recommendations.map((rec) => rec.resourceType).filter(Boolean))].map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}
+              </select>
+            </label>
+            <label>Min confidence
+              <input type="number" min="0" max="100" value={minConfidence * 100} onChange={(e) => setMinConfidence(Number(e.target.value) / 100)} />%
+            </label>
+            <label>Min savings
+              <input type="number" min="0" value={minSavings} onChange={(e) => setMinSavings(Number(e.target.value))} /> USD
+            </label>
+          </div>
           {recommendationsError ? (
             <div className="error" role="alert">Failed to load recommendations: {recommendationsError}</div>
-          ) : recommendations.length > 0 ? (
+          ) : filteredRecommendations.length > 0 ? (
             <>
-              {recommendations.map((rec, i) => (
+              {filteredRecommendations.map((rec, i) => (
                 <div key={i} className="card recommendation-card">
                   <div className="rec-header">
                     <h3>{rec.recommendationType.replace(/_/g, ' ')}</h3>
@@ -305,9 +334,10 @@ export default function ResourceDetailPage() {
                         <pre>{rec.recommendedConfiguration}</pre>
                       </div>
                     </div>
-                    <p className="rec-rationale">{rec.rationale}</p>
+                    <p className="rec-rationale"><strong>Why:</strong> {rec.rationale}</p>
                     <div className="rec-meta">
                       <span>Confidence: {(rec.confidenceScore * 100).toFixed(0)}%</span>
+                      <span>Risk: {rec.risk ?? 'UNKNOWN'}</span>
                       <span>Peak: {rec.peakSchedule}</span>
                     </div>
                   </div>
@@ -318,7 +348,7 @@ export default function ResourceDetailPage() {
               </Link>
             </>
           ) : (
-            <p className="empty-state">No optimization recommendations for this resource</p>
+            <p className="empty-state">No recommendations match the selected filters</p>
           )}
         </div>
     </div>

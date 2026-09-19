@@ -1,8 +1,9 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import DashboardPage from './pages/DashboardPage';
-import ResourceDetailPage from './pages/ResourceDetailPage';
-import GenerateCodePage from './pages/GenerateCodePage';
-import CostAnalysisPage from './pages/CostAnalysisPage';
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ResourceDetailPage = lazy(() => import('./pages/ResourceDetailPage'));
+const GenerateCodePage = lazy(() => import('./pages/GenerateCodePage'));
+const CostAnalysisPage = lazy(() => import('./pages/CostAnalysisPage'));
 import ErrorBoundary from './components/ErrorBoundary';
 
 /** Defines the client-side routes and shared navigation shell. */
@@ -22,12 +23,12 @@ function App() {
         </nav>
         <main id="main-content" className="main-content">
           <ErrorBoundary>
-            <Routes>
+            <Suspense fallback={<div className="loading" role="status">Loading page...</div>}><Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/resources/:resourceId" element={<ResourceDetailPage />} />
               <Route path="/resources/:resourceId/generate" element={<GenerateCodePage />} />
               <Route path="/costs" element={<CostAnalysisPage />} />
-            </Routes>
+            </Routes></Suspense>
           </ErrorBoundary>
         </main>
       </div>

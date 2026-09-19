@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /** HTTP endpoints for recommendations and generated scaling manifests. */
 @RestController
@@ -33,12 +34,25 @@ public class RecommendationsController {
     }
 
     /** Analyzes the requested window and returns applicable scaling recommendations. */
+    public ResponseEntity<List<ScalingRecommendation>> getRecommendations(String resourceId, double days) {
+        return getRecommendations(resourceId, days, 0, 0, null, null);
+    }
+
     @GetMapping("/{resourceId}")
     public ResponseEntity<List<ScalingRecommendation>> getRecommendations(
             @PathVariable @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]*") String resourceId,
-            @RequestParam(defaultValue = "30") @DecimalMin("0.01") @DecimalMax("365") double days
+            @RequestParam(defaultValue = "30") @DecimalMin("0.01") @DecimalMax("365") double days,
+            @RequestParam(defaultValue = "0") @DecimalMin("0") @DecimalMax("1") double minConfidence,
+            @RequestParam(defaultValue = "0") @DecimalMin("0") double minSavingsUsd,
+            @RequestParam(required = false) String resourceType,
+            @RequestParam(required = false) @Pattern(regexp = "(?i)LOW|MEDIUM|HIGH") String risk
     ) {
-        return ResponseEntity.ok(pipeline.recommend(resourceId, days).recommendations());
+        Stream<ScalingRecommendation> recommendations = pipeline.recommend(resourceId, days).recommendations().stream()
+                .filter(rec -> rec.confidenceScore() >= minConfidence)
+                .filter(rec -> rec.estimatedMonthlySavingsUsd() >= minSavingsUsd)
+                .filter(rec -> resourceType == null || rec.resourceType().name().equalsIgnoreCase(resourceType))
+                .filter(rec -> risk == null || rec.risk().equalsIgnoreCase(risk));
+        return ResponseEntity.ok(recommendations.toList());
     }
 
     /**

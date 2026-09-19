@@ -17,6 +17,9 @@ public record MetricsResponse(
         double maxCpuUtilization,
         double avgMemoryUtilization,
         double peakHourUtilization,
-        double offPeakHourUtilization
+        double offPeakHourUtilization,
+        double p50CpuUtilization,
+        double p95CpuUtilization,
+        double p99CpuUtilization
     ) {}
 }

@@ -23,6 +23,21 @@ public record ResourceMetrics(
         double peakHourUtilization,
         double offPeakHourUtilization,
         int peakSampleCount,
-        int offPeakSampleCount
-    ) {}
+        int offPeakSampleCount,
+        double p50CpuUtilization,
+        double p95CpuUtilization,
+        double p99CpuUtilization
+    ) {
+        /** Backwards-compatible constructor for callers that do not provide percentiles. */
+        public AggregatedStats(double avgCpuUtilization, double maxCpuUtilization,
+                double minCpuUtilization, double avgMemoryUtilization,
+                double maxMemoryUtilization, double avgActiveRequests,
+                double peakHourUtilization, double offPeakHourUtilization,
+                int peakSampleCount, int offPeakSampleCount) {
+            this(avgCpuUtilization, maxCpuUtilization, minCpuUtilization,
+                    avgMemoryUtilization, maxMemoryUtilization, avgActiveRequests,
+                    peakHourUtilization, offPeakHourUtilization, peakSampleCount,
+                    offPeakSampleCount, avgCpuUtilization, maxCpuUtilization, maxCpuUtilization);
+        }
+    }
 }

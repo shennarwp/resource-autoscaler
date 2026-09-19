@@ -50,7 +50,7 @@ public class MetricsCollectionService {
             List<MetricPoint> dataPoints, PeakHoursConfig config
     ) {
         if (dataPoints.isEmpty()) {
-            return new ResourceMetrics.AggregatedStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            return new ResourceMetrics.AggregatedStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         double cpuSum = 0, cpuMax = Double.NEGATIVE_INFINITY, cpuMin = Double.MAX_VALUE;
@@ -89,6 +89,7 @@ public class MetricsCollectionService {
         }
 
         int size = dataPoints.size();
+        double[] cpuValues = dataPoints.stream().mapToDouble(MetricPoint::cpuUtilization).sorted().toArray();
         return new ResourceMetrics.AggregatedStats(
             cpuSum / size,
             cpuMax,
@@ -99,8 +100,22 @@ public class MetricsCollectionService {
             peakCount > 0 ? peakSum / peakCount : 0,
             offPeakCount > 0 ? offPeakSum / offPeakCount : 0,
             (int) peakCount,
-            (int) offPeakCount
+            (int) offPeakCount,
+            percentile(cpuValues, 0.50),
+            percentile(cpuValues, 0.95),
+            percentile(cpuValues, 0.99)
         );
+    }
+
+    /** Uses nearest-rank interpolation for stable percentile values in the API. */
+    private double percentile(double[] sortedValues, double quantile) {
+        if (sortedValues.length == 0) return 0;
+        double position = quantile * (sortedValues.length - 1);
+        int lower = (int) Math.floor(position);
+        int upper = (int) Math.ceil(position);
+        if (lower == upper) return sortedValues[lower];
+        double fraction = position - lower;
+        return sortedValues[lower] + (sortedValues[upper] - sortedValues[lower]) * fraction;
     }
 
     /** Returns the schedule configured by the active repository. */
