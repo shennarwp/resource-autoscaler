@@ -38,6 +38,6 @@ public class OpenApiConfig {
                                 .addProperty("error", new Schema<String>().example("Bad Request"))
                                 .addProperty("message", new Schema<String>().example("Invalid request"))
                                 .addProperty("timestamp", new Schema<String>().format("date-time")))
-                        ));
+                        );
     }
 }
