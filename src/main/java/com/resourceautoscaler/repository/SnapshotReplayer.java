@@ -28,8 +28,8 @@ final class SnapshotReplayer {
      * Maps the wall-clock time of {@code now} onto the snapshot's last day so the
      * replay window tracks tick-by-tick clock alignment (e.g. "now, 3h back")
      * against the downloaded sample day, rather than always ending at the snapshot's
-     * newest data point. If now's clock time is past the newest data point, the end
-     * is clamped to it.
+     * newest data point. If now's clock time is outside the snapshot's available
+     * clock range, the end is clamped to the nearest available sample.
      */
     static Instant alignedWindowEnd(MetricsSnapshot snapshot, Instant now) {
         List<MetricsSnapshot.Point> points = snapshot.dataPoints();
@@ -41,6 +41,10 @@ final class SnapshotReplayer {
         java.time.LocalTime clock = now.atZone(java.time.ZoneOffset.UTC).toLocalTime()
                 .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
         Instant candidate = lastDay.with(clock).toInstant();
+        Instant first = Instant.parse(points.getFirst().timestamp());
+        if (candidate.isBefore(first)) {
+            return first;
+        }
         return candidate.isAfter(last) ? last : candidate;
     }
 
