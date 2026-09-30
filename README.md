@@ -2,6 +2,30 @@
 
 Cloud Cost & FinOps Optimization Platform — monitors infrastructure resource utilization, detects over-provisioned systems during off-peak hours, and generates schedule-based autoscaling configurations.
 
+
+## Screenshots
+
+### Dashboard
+
+Resource overview with monitored resource health and utilization summaries.
+Shown below.
+
+![Dashboard](docs/images/home.png)
+
+### Resource Detail
+
+CPU, memory, and request metrics across selectable time ranges, annotated with
+the detected peak/off-peak schedule.
+
+![Resource detail](docs/images/resource.png)
+
+### Code Generation
+
+KEDA `ScaledObject` YAML and Terraform autoscale settings derived from the
+recommendation for a given resource.
+
+![Generated code](docs/images/code.png)
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -205,6 +229,8 @@ Run:
 │       └── types/        # TypeScript interfaces
 ├── Dockerfile
 ├── docker-compose.yml
+├── docs/
+│   └── images/           # README screenshots
 └── pom.xml
 ```
 
